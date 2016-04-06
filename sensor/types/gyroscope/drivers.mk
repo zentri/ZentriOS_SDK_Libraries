@@ -1,0 +1,13 @@
+
+
+ifneq ($(filter DRIVER_GYROSCOPE_MPU9250,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_GYROSCOPE
+$(NAME)_COMPONENTS += libraries/drivers/gyroscopes/mpu9250
+endif
+
+
+
+
+ifneq ($(filter SENSOR_LIB_GYROSCOPE,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
+GLOBAL_INCLUDES += types/gyroscope
+endif

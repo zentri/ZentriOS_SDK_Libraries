@@ -1,0 +1,23 @@
+
+
+ifneq ($(filter DRIVER_THERMOMETER_LM75A,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_THERMOMETER
+$(NAME)_COMPONENTS += libraries/drivers/thermometers/lm75a
+endif
+
+ifneq ($(filter DRIVER_THERMOMETER_HIH6130,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_THERMOMETER
+$(NAME)_COMPONENTS += libraries/drivers/thermometers/hih6130
+endif
+
+ifneq ($(filter DRIVER_THERMOMETER_SI7021,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_THERMOMETER
+$(NAME)_COMPONENTS += libraries/drivers/thermometers/si7021
+endif
+
+
+
+
+ifneq ($(filter SENSOR_LIB_THERMOMETER,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
+GLOBAL_INCLUDES += types/thermometer
+endif
