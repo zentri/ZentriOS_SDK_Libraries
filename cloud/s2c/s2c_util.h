@@ -31,4 +31,3 @@ typedef struct
  */
 zos_result_t s2c_capabilities_parse_file(const char *filename, json_parse_context_t **json_context_ptr);
 
-
