@@ -77,7 +77,7 @@ typedef enum {
 
 // Status Register
 #define FXOS8700CQ_STATUS                                   0x00
-#define FXOS8700CQ_DATA_READY                               0x01
+#define FXOS8700CQ_DATA_READY                               0x08    // bit (3) presents ZYXDR
 
 #define FXOS8700CQ_ACCEL_XOUT_H                             0x01
 #define FXOS8700CQ_ACCEL_XOUT_L                             0x02

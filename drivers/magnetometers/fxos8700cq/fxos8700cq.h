@@ -83,7 +83,7 @@ typedef enum {
 
 // Status Register
 #define FXOS8700CQ_STATUS                                   0x32
-#define FXOS8700CQ_DATA_READY                               0x01
+#define FXOS8700CQ_DATA_READY                               0x08    // bit (3) presents ZYXDR
 
 // Sensor I2C Slave Address
 #define FXOS8700CQ_SLAVE_ADDRESS                            0x1E

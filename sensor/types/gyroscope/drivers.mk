@@ -5,8 +5,10 @@ GLOBAL_DEFINES += SENSOR_LIB_GYROSCOPE
 $(NAME)_COMPONENTS += libraries/drivers/gyroscopes/mpu9250
 endif
 
-
-
+ifneq ($(filter DRIVER_GYROSCOPE_FXAS21002C,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_GYROSCOPE
+$(NAME)_COMPONENTS += libraries/drivers/gyroscopes/fxas21002c
+endif
 
 ifneq ($(filter SENSOR_LIB_GYROSCOPE,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
 GLOBAL_INCLUDES += types/gyroscope
