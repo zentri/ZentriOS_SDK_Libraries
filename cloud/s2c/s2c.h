@@ -55,7 +55,8 @@ typedef enum
     S2C_SETTING_LOCAL_CONNECTED_HANDLER,    //!< Optional event handler which indicates if a client connects to the local server, @ref zos_event_handler_t
     S2C_SETTING_LOCAL_DISCONNECTED_HANDLER, //!< Optional event handler which indicates if a client disconnect from the local server, @ref zos_event_handler_t
     S2C_SETTING_STREAM_READ_REQUEST_HANDLER,//!< Optional event handler which indicates if a client requests the device's current stream values, @ref zos_event_handler_t
-    S2C_SETTING_COMMAND_CALLBACK,           //!< Optional, @ref s2c_command_callback_t, callback which is called when a locally connected client issues a command to the device. This callback can stop the command from executing.
+    S2C_SETTING_COMMAND_CALLBACK,           //!< Optional, @ref s2c_command_callback_t, callback which is called when a locally connected Mobile issues a command to the Device.
+                                            //!< This callback can stop the command from executing.
     S2C_SETTING_COUNT                       //!< The total number of settings
 } s2c_setting_t;
 
@@ -64,8 +65,8 @@ typedef enum
  */
 typedef enum
 {
-    S2C_FLAG_MDNS_ENABLED               = (1 << 0),//!< Enable mDNS for advertising device on local network
-    S2C_FLAG_BROADCAST_ENABLED          = (1 << 1),//!< Enable UDP broadcast for advertising device on local network
+    S2C_FLAG_MDNS_ENABLED               = (1 << 0), //!< Enable mDNS for advertising device on local network
+    S2C_FLAG_BROADCAST_ENABLED          = (1 << 1), //!< Enable UDP broadcast for advertising device on local network
 } s2c_flag_t;
 
 /**
@@ -75,11 +76,14 @@ typedef enum
  */
 typedef enum
 {
-    S2C_STATUS_HAVE_DEVICE_KEY      = (1 << 0),//!< The device has a key for the local server (i.e. local connections are encrypted)
-    S2C_STATUS_HAVE_CLOUD_TOKEN     = (1 << 1),//!< The device has a cloud token (i.e. it's able to connect to the cloud)
-    S2C_STATUS_SERVER_ON_WLAN       = (1 << 2),//!< The device's local server is running the the WLAN interface
-    S2C_STATUS_SERVER_ON_SOFTAP     = (1 << 3),//!< The device's local server is running on the SoftAP interface
-    S2C_STATUS_CLOUD_CONNECTED      = (1 << 4),//!< The device is connected to the cloud
+    S2C_STATUS_HAVE_DEVICE_KEY      = (1 << 0),     //!< The device has a key for the local server (i.e. local connections are encrypted)
+    S2C_STATUS_HAVE_CLOUD_TOKEN     = (1 << 1),     //!< The device has a cloud token (i.e. it's able to connect to the cloud)
+    S2C_STATUS_SERVER_ON_WLAN       = (1 << 2),     //!< The device's local server is running the the WLAN interface
+    S2C_STATUS_SERVER_ON_SOFTAP     = (1 << 3),     //!< The device's local server is running on the SoftAP interface
+    S2C_STATUS_CLOUD_CONNECTED      = (1 << 4),     //!< The device is connected to the cloud
+    S2C_STATUS_MOBILE_CONNECTED     = (1 << 5),     //!< One or more mobiles connected to device
+    S2C_STATUS_DEVICE_LISTENERS     = (1 << 6),     //!< Device has listeners registered
+    S2C_STATUS_HOST_LISTENERS       = (1 << 7),     //!< Host has listeners registered
 } s2c_status_flag_t;
 
 /**
@@ -87,11 +91,13 @@ typedef enum
  */
 typedef enum
 {
-    S2C_NODE_DEVICE          = 0,//!< The Device (i.e. the ZentriOS application running a ZentriOS module)
-    S2C_NODE_HOST            = 1,//!< The external host MCU connected to the Device
-    S2C_NODE_MOBILE          = 2,//!< Mobile application (e.g. iPhone or Android App)
-    S2C_NODE_CLOUD           = 3,//!< S2C Cloud connector
-    S2C_NODE_DMS             = 4 //!< Device Management Server
+    S2C_NODE_DEVICE          = 0,   //!< The Device (i.e. the ZentriOS application running a ZentriOS module)
+    S2C_NODE_HOST            = 1,   //!< The external host MCU connected to the Device's serial bus
+    S2C_NODE_MOBILE          = 2,   //!< Mobile application (e.g. iPhone or Android App)
+    S2C_NODE_CLOUD           = 3,   //!< S2C Cloud connector
+    S2C_NODE_DMS_DEVICE      = 4,   //!< Device Management Server device (e.g. files specific to the device)
+    S2C_NODE_DMS_PRODUCT     = 5,   //!< Device Management Server product (e.g. files specific to the product the device is associated)
+    S2C_NODE_INVALID         = 0xff
 } s2c_node_t;
 
 
@@ -103,22 +109,22 @@ typedef enum
 typedef const void* s2c_config_t[S2C_SETTING_COUNT];
 
 /**
- * Callback for when data has been read from a stream
+ * Callback for when stream data has been received from the Cloud or Mobile
  *
- * This callback executes in the context of the TCP server. The callback
+ * This callback executes in the context of the Zap thread. The callback
  * is supplied with the parsed JSON tokens. The tokens are automatically
  * cleaned up after the callback returns.
  *
- * @param stream The whose data has been read
- * @param arg Argument supplied when the listener was registered, @ref s2c_register_listener
+ * @param stream The stream whose data has been received from the Cloud or Mobile
+ * @param arg Argument supplied when the listener was registered, @ref s2c_register_listener()
  * @param json_context The parsed JSON context, @ref json_parse_context_t
- * @param msg_tok The 'message' token from the received stream data
+ * @param msg_tok The 'message' token from the received stream data JSON
  */
 typedef void (*s2c_stream_listener_t)(const char *stream, void *arg, json_parse_context_t *json_context, json_tok_t *msg_tok);
 
 
 /**
- * Callback for when a local client attempt to execute a command
+ * Callback for when a Mobile attempts to execute a command on the Device
  *
  * This callback can be used as a security feature. It is called before a
  * local client attempts to execute a command. If the callback returns
@@ -131,8 +137,8 @@ typedef void (*s2c_stream_listener_t)(const char *stream, void *arg, json_parse_
  *       always returns ZOS_FALSE then the device will not be able to be setup.
  *
  * @param source The source of the command, see @ref s2c_node_t
- * @param command_string The commmand string the remote client wants to execute
- * @return ZOS_TRUE if the remote client is allowed to execute the command, ZOS_FALSE else
+ * @param command_string The command string the Mobile wants to execute
+ * @return ZOS_TRUE if the remote Mobile is allowed to execute the command, ZOS_FALSE else
  */
 typedef zos_bool_t (*s2c_command_callback_t)(s2c_node_t source, const char *command_string);
 
@@ -140,18 +146,18 @@ typedef zos_bool_t (*s2c_command_callback_t)(s2c_node_t source, const char *comm
 
 /**
  * @}
- * @addtogroup lib_cloud_s2c
+ * @addtogroup lib_cloud_s2c_core
  * @{
  */
 
 /**
  * @brief Initialize the S2C library
  *
- * This should be called on ZAP startup. The supplied config
+ * This should be called on ZAP startup. The supplied @ref s2c_config_t
  * should contain pointers/values for the S2C libraries internal settings.
  * If a settings isn't used leave as NULL.
  *
- * @param config Array of pointers/values for library configuration
+ * @param config Array of pointers/values for library configuration, see @ref s2c_config_t
  * @return @ref zos_result_t The result of the API call.
  * @zos{level=1}
  */
@@ -168,7 +174,7 @@ void s2c_deinit(void);
 /**
  * @brief Return the value of a S2C library setting
  *
- * @param setting The key of the corresponding setting
+ * @param setting The key of the corresponding setting, see @ref s2c_setting_t
  * @return The value of the setting
  * @zos{level=1}
  */
@@ -177,7 +183,7 @@ const void* s2c_get_setting(s2c_setting_t setting);
 /**
  * @brief Set the value of a S2C library setting
  *
- * @param setting The key of the corresponding setting
+ * @param setting The key of the corresponding setting, see @ref s2c_setting_t
  * @param value The next value of the setting
  * @return @ref zos_result_t The result of the API call.
  * @zos{level=1}
@@ -185,7 +191,7 @@ const void* s2c_get_setting(s2c_setting_t setting);
 zos_result_t s2c_set_setting(s2c_setting_t setting, const void *value);
 
 /**
- * @brief Start the local server Mobile app's connect
+ * @brief Start the local server to which one or more Mobiles connect
  *
  * This starts the local server on the specified network interface.
  * If the network is up, it will bring the network up first before starting
@@ -208,11 +214,11 @@ zos_result_t s2c_start_server(zos_interface_t interface);
 zos_result_t s2c_stop_server(void);
 
 /**
- * @brief Open a connection to the cloud
+ * @brief Open a connection to the S2C cloud connector
  *
  * This opens a websocket connection to the cloud. The device must first have
  * a valid cloud token before issuing this API call. If cloud token must be set
- * either during s2c_init() or s2c_set_setting() using the @ref S2C_SETTING_CLOUD_TOKEN setting.
+ * either during @ref s2c_init() or @ref s2c_set_setting() using the @ref S2C_SETTING_CLOUD_TOKEN setting.
  *
  * Upon opening the websocket connection, the cloud validates the token. If the token is
  * invalid then @ref ZOS_INVALID_TOKEN is returned. The device should stop trying to connect
@@ -236,11 +242,11 @@ zos_result_t s2c_open_cloud_connection(const char *url_str, const char *cert_fil
 zos_result_t s2c_close_cloud_connection(void);
 
 /**
- * @brief Write stream data to all listening clients
+ * @brief Write stream data to all listening Mobiles and Cloud
  *
  * This will write stream data to:
  * - The cloud if the connection is opened
- * - A local client if the client registered a listener (this is a different listener than s2c_register_listener())
+ * - Mobiles if the Mobile registered a listener (this is a different listener than @ref s2c_register_listener())
  *
  * This API allows for writing stream data all at once or in chunks.
  * To write stream data all at once, supply:
@@ -271,11 +277,11 @@ zos_result_t s2c_close_cloud_connection(void);
 zos_result_t s2c_write_stream(const char *stream, const void *data, uint16_t length, zos_bool_t last_write);
 
 /**
- * @brief Write string data to all listening clients
+ * @brief Write string data to all listening Mobiles and Cloud
  *
  * This will write string data to:
  * - The cloud if the connection is opened
- * - A local client if the client registered a listener (this is a different listener than s2c_register_listener())
+ * - Mobiles if the Mobile registered a listener (this is a different listener than  @ref s2c_register_listener())
  *
  * @note The string is written all at once (chunking not supported, @ref s2c_write_stream() )
  *
@@ -290,12 +296,12 @@ zos_result_t s2c_write_stream_str(const char *stream, const char *str);
  * @brief Register a listener for incoming stream data
  *
  * This registers a callback which is executed when the corresponding stream receives
- * data from either the cloud or local client. Refer to @ref s2c_stream_listener_t for
+ * data from either the cloud or Mobile. Refer to @ref s2c_stream_listener_t for
  * more information on how the callback works.
  *
  * Use s2c_unregister_listener() to remove the listener.
  *
- * @note The registered listener executes in the TCP server context.
+ * @note The registered listener executes in the Zap event thread context.
  *
  * @param stream Name of stream to listen for incoming data
  * @param listener Callback to be executed when stream receives data
@@ -308,7 +314,7 @@ zos_result_t s2c_register_listener(const char *stream, s2c_stream_listener_t lis
 /**
  * @brief Unregister a listener for incoming stream data
  *
- * This removes a listener registered by s2c_register_listener()
+ * This removes a listener registered by @ref s2c_register_listener()
  *
  * @param stream Name of the stream for which to remove the listener
  * @return @ref zos_result_t The result of the API call
@@ -326,16 +332,16 @@ zos_result_t s2c_unregister_listener(const char *stream);
  *
  * @note A cloud connection must be opened before calling this API
  *
- * @param stream Name of the stream for which to retrieve latest value from cloud
+ * @param stream Name of the stream for which to retrieve latest value from cloud, leave NULL to request all registered streams
  * @return @ref zos_result_t The result of the API call
  * @zos{level=1}
  */
 zos_result_t s2c_request_stream_data(const char *stream);
 
 /**
- * @brief Return the number of connected local server clients
+ * @brief Return the number of connected Mobiles
  *
- * @return The number of locally connected clients to the TCP server
+ * @return The number of locally connected Mobiles
  * @zos{level=1}
  */
 uint8_t s2c_get_connection_count(void);
@@ -349,12 +355,17 @@ uint8_t s2c_get_connection_count(void);
  */
 zos_bool_t s2c_cloud_connection_is_active(void);
 
+/**
+ * @brief Get the current status of the S2C device
+ * @return bitmask of status flags, see @ref s2c_status_flag_t
+ */
+s2c_status_flag_t s2c_get_status_flags(void);
 
+/**
+ * @}
+ */
 
 #include "s2c_command.h"
 #include "s2c_file.h"
 #include "s2c_util.h"
 
-/**
- * @}
- */
