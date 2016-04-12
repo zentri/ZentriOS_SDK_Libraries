@@ -42,7 +42,7 @@
 #define SeCtx void
 #endif
 
-/** @addtogroup selib
+/** @addtogroup lib_cloud_smq
 @{
 */
 
