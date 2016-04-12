@@ -77,8 +77,6 @@ zos_result_t FXOS8700CQ_AccSetODR(FXOS8700CQ_ODR_t odr_value)
       return ZOS_ERROR;
   }
 
-  FXOS8700CQ_Accel_ReadReg(FXOS8700CQ_CTRL_REG1, &value);
-
   return ZOS_SUCCESS;
 }
 
@@ -105,8 +103,6 @@ zos_result_t FXOS8700CQ_AccSetOperatingMode(FXOS8700CQ_OperatingMode_t mode)
   {
       return ZOS_ERROR;
   }
-
-  FXOS8700CQ_Accel_ReadReg(FXOS8700CQ_CTRL_REG1, &value);
 
   return ZOS_SUCCESS;
 }
@@ -135,8 +131,6 @@ zos_result_t FXOS8700CQ_AccSetHybridMode(FXOS8700CQ_HybridMode_t mode)
       return ZOS_ERROR;
   }
 
-  FXOS8700CQ_Accel_ReadReg(FXOS8700CQ_M_CTRL_REG1, &value);
-
   return ZOS_SUCCESS;
 }
 /*******************************************************************************
@@ -163,8 +157,6 @@ zos_result_t FXOS8700CQ_AccSetLowNoiseMode(FXOS8700CQ_NoiseMode_t lnoise)
       return ZOS_ERROR;
   }
 
-  FXOS8700CQ_Accel_ReadReg(FXOS8700CQ_CTRL_REG1, &value);
-
   return ZOS_SUCCESS;
 }
 /*******************************************************************************
@@ -190,8 +182,6 @@ zos_result_t FXOS8700CQ_AccSetFullScale(FXOS8700CQ_AccFullscale_t fs)
   {
       return ZOS_ERROR;
   }
-
-  FXOS8700CQ_Accel_ReadReg(FXOS8700CQ_XYZ_DATA_CFG, &value);
 
   return ZOS_SUCCESS;
 }

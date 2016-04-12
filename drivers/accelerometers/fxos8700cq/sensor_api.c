@@ -32,7 +32,7 @@ zos_result_t sensor_accelerometer_init(const accelerometer_config_t *config)
         (FXOS8700CQ_AccSetHybridMode(FXOS8700CQ_MODE_HYBRID) == ZOS_SUCCESS) && // set hybrid mode active (for future use of magnetometer)
         (FXOS8700CQ_AccSetODR(fxos8700cq_get_odr(config->samp_freq)) == ZOS_SUCCESS) &&
         (FXOS8700CQ_AccSetFullScale(fxos8700cq_get_fullscale(config->fullscale)) == ZOS_SUCCESS) &&
-        (FXOS8700CQ_AccSetOperatingMode(FXOS8700CQ_MODE_ACTIVE) == ZOS_SUCCESS)) // exit standby to active operating more
+        (FXOS8700CQ_AccSetOperatingMode(FXOS8700CQ_MODE_ACTIVE) == ZOS_SUCCESS)) // exit standby to active operating mode
     {
         if((config->fullscale == ACCEL_FULLSCALE_2G) || (config->fullscale == ACCEL_FULLSCALE_4G))
         {
@@ -57,7 +57,7 @@ zos_result_t sensor_accelerometer_has_new_data(zos_bool_t *has_data)
     uint8_t status_reg = 0;
     if (FXOS8700CQ_AccGetStatusReg(&status_reg) == ZOS_SUCCESS)
     {
-        if ((status_reg & 0xFE) > 0)
+        if ((status_reg & FXOS8700CQ_DATA_READY) > 0)
         {
             *has_data = ZOS_TRUE;
         }
