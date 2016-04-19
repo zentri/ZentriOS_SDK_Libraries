@@ -69,6 +69,7 @@ zos_result_t LSM6DS0_SetODR(LSM6DS0_ODR_t ov);
 zos_result_t LSM6DS0_SetAxis(LSM6DS0_AXISenable_t axis);
 zos_result_t LSM6DS0_SetFullScale(LSM6DS0_Fullscale_t fs);
 zos_result_t LSM6DS0_SetBLE(LSM6DS0_Endianess_t ble);
+zos_result_t LSM6DS0_ResetDevice(void);
 zos_result_t LSM6DS0_GetStatusReg(uint8_t* val);
 zos_result_t LSM6DS0_GetAccAxesRaw(AxesRaw_t *pData);
 #endif /* __LSM6DS0_PLATFORM_H */

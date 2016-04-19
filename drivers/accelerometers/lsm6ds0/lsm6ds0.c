@@ -210,6 +210,28 @@ zos_result_t LSM6DS0_SetBLE(LSM6DS0_Endianess_t ble)
 }
 
 /*******************************************************************************
+* Function Name  : LSM6DS0_ResetDevice
+* Description    : Spftware reset the device
+* Input          : None
+* Output         : None
+* Return         : Status [ZOS_ERROR, ZOS_SUCCESS]
+*******************************************************************************/
+zos_result_t LSM6DS0_ResetDevice(void)
+{
+    uint8_t value;
+
+    if( LSM6DS0_ReadReg(LSM6DS0_XG_CTRL_REG8_XL, &value) != ZOS_SUCCESS)
+        return ZOS_ERROR;
+
+    value |= 0x01;
+
+    if( LSM6DS0_WriteReg(LSM6DS0_XG_CTRL_REG8_XL, value) != ZOS_SUCCESS )
+        return ZOS_ERROR;
+
+    return ZOS_SUCCESS;
+}
+
+/*******************************************************************************
 * Function Name  : LSM6DS0_GetStatusReg
 * Description    : Read the status register
 * Input          : char to empty by Status Reg Value

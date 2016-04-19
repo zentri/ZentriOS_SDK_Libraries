@@ -25,7 +25,8 @@ zos_result_t sensor_accelerometer_init(const accelerometer_config_t *config)
     zos_result_t result = ZOS_ERROR;
 
 
-    if ((LSM6DS0_SetODR(get_odr(config->samp_freq)) == ZOS_SUCCESS) &&
+    if ((LSM6DS0_ResetDevice() == ZOS_SUCCESS) &&
+        (LSM6DS0_SetODR(get_odr(config->samp_freq)) == ZOS_SUCCESS) &&
         (LSM6DS0_SetFullScale(get_fullscale(config->fullscale)) == ZOS_SUCCESS) &&
         (LSM6DS0_SetBLE(LSM6DS0_BLE_LSB) == ZOS_SUCCESS) &&
         (LSM6DS0_SetAxis(get_axis_en(config->axis_en)) == ZOS_SUCCESS))
