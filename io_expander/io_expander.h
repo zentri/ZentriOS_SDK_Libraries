@@ -44,6 +44,13 @@ typedef uint8_t io_expander_val_t;
 typedef uint8_t io_expander_dir_t;
 typedef uint8_t io_expander_pol_t;
 
+typedef zos_result_t (*get_input_values_prototype_t)(const zos_i2c_device_t* i2c, uint8_t* result);
+typedef zos_result_t (*get_output_values_prototype_t)(const zos_i2c_device_t* i2c, uint8_t* result);
+typedef zos_result_t (*set_values_prototype_t)(const zos_i2c_device_t* i2c, const uint8_t* values);
+typedef zos_result_t (*get_directions_prototype_t)(const zos_i2c_device_t* i2c, uint8_t* result);
+typedef zos_result_t (*set_directions_prototype_t)(const zos_i2c_device_t* i2c, const uint8_t* directions);
+typedef zos_result_t (*get_polarities_prototype_t)(const zos_i2c_device_t* i2c, uint8_t* result);
+typedef zos_result_t (*set_polarities_prototype_t)(const zos_i2c_device_t* i2c, const uint8_t* polarities);
 
 typedef struct
 {

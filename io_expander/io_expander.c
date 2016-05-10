@@ -8,19 +8,35 @@
  */
 #include "io_expander.h"
 
-#ifdef DRIVER_TCA6416
-#include "tca6416.h"
+#ifdef DRIVER_ADP5589
+#include "adp5589.h"
+#define BANKS_NUM 3
+uint8_t values[3];
+get_input_values_prototype_t get_input_values = (get_input_values_prototype_t)adp5589_get_input_values;
+get_output_values_prototype_t get_output_values = (get_output_values_prototype_t)adp5589_get_output_values;
+set_values_prototype_t set_values= (set_values_prototype_t)adp5589_set_values;
+get_directions_prototype_t get_directions= (get_directions_prototype_t)adp5589_get_directions;
+set_directions_prototype_t set_directions=(set_directions_prototype_t)adp5589_set_directions;
+get_polarities_prototype_t get_polarities= (get_polarities_prototype_t)adp5589_get_polarities;
+set_polarities_prototype_t set_polarities= (set_polarities_prototype_t)adp5589_set_polarities;
+#elif defined(DRIVER_TCA6416)
+#include "tca6416"
+#define BANKS_NUM 2
+uint8_t values[2];
+get_input_values_prototype_t get_input_values = (get_input_values_prototype_t)adp5589_get_input_values;
+get_output_values_prototype_t get_output_values = (get_output_values_prototype_t)adp5589_get_output_values;
+set_values_prototype_t set_values= (set_values_prototype_t)adp5589_set_values;
+get_directions_prototype_t get_directions= (get_directions_prototype_t)adp5589_get_directions;
+set_directions_prototype_t set_directions=(set_directions_prototype_t)adp5589_set_directions;
+get_polarities_prototype_t get_polarities= (get_polarities_prototype_t)adp5589_get_polarities;
+set_polarities_prototype_t set_polarities= (set_polarities_prototype_t)adp5589_set_polarities;
 #else
-#error No IO Expander driver has been specified. e.g. GLOBAL_DEFINES := DRIVER_TCA6416
+#error No IO Expander driver has been specified. e.g. GLOBAL_DEFINES := DRIVER_TCA6416 or DRIVER_ADP5589
 #endif
-
 
 /* Returns ZOS_TRUE if dev and data arguments are valid */
-#ifdef DEBUG
 static zos_bool_t args_valid(const io_expander_device_t* dev, const void* data);
-#else
-#define args_valid(x, y) 1
-#endif
+
 
 /* Calcs bitmask for pin set functions based on a pins bank and bitmask */
 //static uint16_t calc_bitmask(const io_expander_pin_t *pin);
@@ -47,9 +63,7 @@ zos_result_t io_expander_val_get_all(const io_expander_device_t *dev, io_expande
 
     if (args_valid(dev, result))
     {
-#ifdef DRIVER_TCA6416
-        get_result = tca6416_get_input_values(dev->device, (uint8_t*)result);
-#endif
+    	get_result = get_input_values(dev->device, (uint8_t*)result);
     }
 
     return get_result;
@@ -62,9 +76,7 @@ zos_result_t io_expander_val_set_all(const io_expander_device_t *dev, const io_e
 
     if (args_valid(dev, values))
     {
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_set_values(dev->device, (uint8_t*)values);
-#endif
+    	ret_val = set_values(dev->device, (uint8_t*)values);
     }
 
     return ret_val;
@@ -77,9 +89,7 @@ zos_result_t io_expander_dir_get_all(const io_expander_device_t *dev, io_expande
 
     if (args_valid(dev, result))
     {
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_get_directions(dev->device, (uint8_t*)result);
-#endif
+    	ret_val = get_directions(dev->device, (uint8_t*)result);
     }
 
     return ret_val;
@@ -92,9 +102,7 @@ zos_result_t io_expander_dir_set_all(const io_expander_device_t *dev, const io_e
 
     if(args_valid(dev, directions))
     {
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_set_directions(dev->device, (uint8_t*)directions);
-#endif
+    	ret_val = set_directions(dev->device, (uint8_t*)directions);
     }
 
     return ret_val;
@@ -106,9 +114,7 @@ zos_result_t io_expander_pol_get_all(const io_expander_device_t *dev, io_expande
 
     if (args_valid(dev, result))
     {
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_get_polarities(dev->device, (uint8_t*)result);
-#endif
+    	ret_val = get_polarities(dev->device, (uint8_t*)result);
     }
 
     return ret_val;
@@ -120,9 +126,7 @@ zos_result_t io_expander_pol_set_all(const io_expander_device_t *dev, const io_e
 
     if (args_valid(dev, polarities))
     {
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_set_polarities(dev->device, (uint8_t*)polarities);
-#endif
+    	ret_val = set_polarities(dev->device, (uint8_t*)polarities);
     }
 
     return ret_val;
@@ -132,78 +136,66 @@ zos_result_t io_expander_val_get(const io_expander_device_t* dev, const io_expan
 {
     zos_result_t ret_val = ZOS_INVALID_ARG;
 
+    uint8_t values[BANKS_NUM];
     if (args_valid(dev, pin) && result != NULL)
     {
-        uint8_t values[2];
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_get_input_values(dev->device, values);
-#endif
+    	ret_val =  get_input_values(dev->device, values);
         set_pin_result(pin->bitmask, *get_bank_value(pin, values), (uint8_t*)result);
     }
-
     return ret_val;
 }
 
 zos_result_t io_expander_val_set(const io_expander_device_t *dev, const io_expander_pin_t *pin, const io_expander_val_t value)
 {
-    zos_result_t ret_val = ZOS_INVALID_ARG;
+	zos_result_t ret_val = ZOS_INVALID_ARG;
 
-    if (args_valid(dev, pin))
-    {
-#ifdef DRIVER_TCA6416
-        uint8_t values[2];
-        if (tca6416_get_output_values(dev->device, values) != ZOS_SUCCESS)
-        {
-            ret_val = ZOS_ERROR;
-        }
-        else
-        {
-            mask_values(values, (uint8_t*)&value, pin);
-            ret_val = tca6416_set_values(dev->device, values);
-        }
-#endif
-    }
-
-    return ret_val;
+	if (args_valid(dev, pin))
+	{
+		if(get_output_values(dev->device, values) != ZOS_SUCCESS)
+		{
+			ret_val = ZOS_ERROR;
+		}
+		else
+		{
+			mask_values(values, (uint8_t*)&value, pin);
+			ret_val = set_values(dev->device, values);
+		}
+	}
+	return ret_val;
 }
 
 zos_result_t io_expander_dir_get(const io_expander_device_t *dev, const io_expander_pin_t *pin, io_expander_dir_t *result)
 {
-    zos_result_t ret_val = ZOS_INVALID_ARG;
+	zos_result_t ret_val = ZOS_INVALID_ARG;
 
-    if (args_valid(dev, pin) && result != NULL)
-    {
-        uint8_t dirs[2];
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_get_directions(dev->device, dirs);
-#endif
-        set_pin_result(pin->bitmask, *get_bank_value(pin, dirs), (uint8_t*)result);
-    }
+	if (args_valid(dev, pin) && result != NULL)
+	{
+		uint8_t dirs[BANKS_NUM];
 
-    return ret_val;
+		ret_val = get_directions(dev->device, dirs);
+		set_pin_result(pin->bitmask, *get_bank_value(pin, dirs), (uint8_t*)result);
+	}
+	return ret_val;
 }
 
 zos_result_t io_expander_dir_set(const io_expander_device_t *dev, const io_expander_pin_t *pin, const io_expander_dir_t direction)
 {
-    zos_result_t ret_val = ZOS_INVALID_ARG;
+	zos_result_t ret_val = ZOS_INVALID_ARG;
 
-    if (args_valid(dev, pin))
-    {
-        uint8_t dirs[2];
-#ifdef DRIVER_TCA6416
-        if (tca6416_get_directions(dev->device, dirs) != ZOS_SUCCESS)
-        {
-            ret_val = ZOS_ERROR;
-        }
-        else
-        {
-            mask_values(dirs, (uint8_t*)&direction, pin);
-            ret_val = tca6416_set_directions(dev->device, dirs);
-        }
-#endif
-    }
-
-    return ret_val;
+	if (args_valid(dev, pin))
+	{
+		uint8_t dirs[BANKS_NUM];
+		if (get_directions(dev->device, dirs) != ZOS_SUCCESS)
+		{
+			ret_val = ZOS_ERROR;
+		}
+		else
+		{
+			mask_values(dirs, (uint8_t*)&direction, pin);
+			ret_val = set_directions(dev->device, dirs);
+		}
+	}
+	return ret_val;
 }
 
 zos_result_t io_expander_pol_get(const io_expander_device_t *dev, const io_expander_pin_t *pin, io_expander_pol_t *result)
@@ -212,10 +204,9 @@ zos_result_t io_expander_pol_get(const io_expander_device_t *dev, const io_expan
 
     if (dev != NULL && pin != NULL && result != NULL)
     {
-        uint8_t pols[2];
-#ifdef DRIVER_TCA6416
-        ret_val = tca6416_get_polarities(dev->device, pols);
-#endif
+        uint8_t pols[BANKS_NUM];
+
+        ret_val = get_polarities(dev->device, pols);
         set_pin_result(pin->bitmask, *get_bank_value(pin, pols), \
                 (uint8_t*)result);
     }
@@ -229,18 +220,17 @@ zos_result_t io_expander_pol_set(const io_expander_device_t *dev, const io_expan
 
     if (dev != NULL && pin != NULL)
     {
-        uint8_t pols[2];
-#ifdef DRIVER_TCA6416
-        if (tca6416_get_polarities(dev->device, pols) != ZOS_SUCCESS)
+        uint8_t pols[BANKS_NUM];
+
+        if (get_polarities(dev->device, pols) != ZOS_SUCCESS)
         {
             ret_val = ZOS_ERROR;
         }
         else
         {
             mask_values(pols, (uint8_t*)&polarity, pin);
-            ret_val = tca6416_set_polarities(dev->device, pols);
+            ret_val = set_polarities(dev->device, pols);
         }
-#endif
     }
 
     return ret_val;
@@ -249,14 +239,11 @@ zos_result_t io_expander_pol_set(const io_expander_device_t *dev, const io_expan
 /******************************************************
  *          Internal Function Definitions
  ******************************************************/
-
-#ifdef DEBUG
 /* Returns ZOS_TRUE if dev and data arguments are valid */
 static zos_bool_t args_valid(const io_expander_device_t* dev, const void* data)
 {
     return (zos_bool_t)(dev != NULL && data != NULL);
 }
-#endif
 
 /* Calcs bitmask for pin set functions based on a pins bank and bitmask */
 #if 0
@@ -302,9 +289,13 @@ static uint8_t* get_bank_value(const io_expander_pin_t* pin, uint8_t* values)
     {
         bank_value = &values[0];
     }
-    else
+    else if(pin->bank_id == 1U)
     {
         bank_value = &values[1];
+    }
+    else
+    {
+    	bank_value = &values[2];
     }
 
     return bank_value;
