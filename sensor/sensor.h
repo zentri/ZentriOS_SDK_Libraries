@@ -31,6 +31,9 @@
 #ifdef SENSOR_LIB_LIGHT
 #include "sensor/types/light/light.h"
 #endif
+#ifdef SENSOR_LIB_BUTTONS
+#include "sensor/types/capacitativebuttons/capacitativebuttons.h"
+#endif
 #ifdef SENSOR_LIB_USER_SENSORS
 #include "user_sensors.h"
 #endif
@@ -79,6 +82,9 @@ typedef enum
 #endif
 #ifdef SENSOR_LIB_LIGHT
     SENSOR_LIGHT,           //!< Ambient Light Sensor
+#endif
+#ifdef SENSOR_LIB_CAPACITATIVEBUTTONS
+	SENSOR_CAPACITATIVEBUTTONS,  //  Buttons
 #endif
 #ifdef SENSOR_LIB_USER_SENSOR_IDS
     SENSOR_LIB_USER_SENSOR_IDS,

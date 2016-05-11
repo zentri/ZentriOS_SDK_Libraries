@@ -1,0 +1,10 @@
+
+ifneq ($(filter DRIVER_CAPACITATIVEBUTTONS_PMODCDC1,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_CAPACITATIVEBUTTONS
+$(NAME)_COMPONENTS += libraries/drivers/capacitativebuttons/pmodcdc1
+endif
+
+
+ifneq ($(filter SENSOR_LIB_CAPACITATIVEBUTTONS,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
+GLOBAL_INCLUDES += types/capacitativebuttons
+endif
