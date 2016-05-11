@@ -180,6 +180,9 @@ zos_result_t adp5589_get_directions(const zos_i2c_device_t* i2c, uint8_t* result
 	if (args_valid(i2c, result))
 	{
 		cmd_result = ADP5589_ReadRegWithSize(i2c, ADP5589_GPIO_DIRECTION_A, result, ADP5589_REG_SIZE);
+		result[0] = (~result[0]);
+		result[1] = (~result[1]);
+		result[2] = (~result[2]);
 	}
 
 	return cmd_result;
@@ -188,6 +191,7 @@ zos_result_t adp5589_get_directions(const zos_i2c_device_t* i2c, uint8_t* result
 zos_result_t adp5589_set_directions(const zos_i2c_device_t* i2c, const uint8_t* directions)
 {
     zos_result_t cmd_result = ZOS_INVALID_ARG;
+    uint8_t directions_set[3];
 
     if(is_inited == ZOS_FALSE)
     {
@@ -195,7 +199,11 @@ zos_result_t adp5589_set_directions(const zos_i2c_device_t* i2c, const uint8_t* 
     }
     if (is_device_valid(i2c))
     {
-        cmd_result = ADP5589_WriteRegWithSize(i2c, ADP5589_GPIO_DIRECTION_A, directions, ADP5589_REG_SIZE);
+    	directions_set[0] = (~directions[0]);
+    	directions_set[1] = (~directions[1]);
+    	directions_set[2] = (~directions[2]);
+    	ZOS_LOG("directions=%x:%x:%x", directions_set[0], directions_set[1], directions_set[2]);
+        cmd_result = ADP5589_WriteRegWithSize(i2c, ADP5589_GPIO_DIRECTION_A, directions_set, ADP5589_REG_SIZE);
     }
 
     return cmd_result;

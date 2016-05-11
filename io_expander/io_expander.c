@@ -20,16 +20,16 @@ set_directions_prototype_t set_directions=(set_directions_prototype_t)adp5589_se
 get_polarities_prototype_t get_polarities= (get_polarities_prototype_t)adp5589_get_polarities;
 set_polarities_prototype_t set_polarities= (set_polarities_prototype_t)adp5589_set_polarities;
 #elif defined(DRIVER_TCA6416)
-#include "tca6416"
+#include "tca6416.h"
 #define BANKS_NUM 2
 uint8_t values[2];
-get_input_values_prototype_t get_input_values = (get_input_values_prototype_t)adp5589_get_input_values;
-get_output_values_prototype_t get_output_values = (get_output_values_prototype_t)adp5589_get_output_values;
-set_values_prototype_t set_values= (set_values_prototype_t)adp5589_set_values;
-get_directions_prototype_t get_directions= (get_directions_prototype_t)adp5589_get_directions;
-set_directions_prototype_t set_directions=(set_directions_prototype_t)adp5589_set_directions;
-get_polarities_prototype_t get_polarities= (get_polarities_prototype_t)adp5589_get_polarities;
-set_polarities_prototype_t set_polarities= (set_polarities_prototype_t)adp5589_set_polarities;
+get_input_values_prototype_t get_input_values = (get_input_values_prototype_t)tca6416_get_input_values;
+get_output_values_prototype_t get_output_values = (get_output_values_prototype_t)tca6416_get_output_values;
+set_values_prototype_t set_values= (set_values_prototype_t)tca6416_set_values;
+get_directions_prototype_t get_directions= (get_directions_prototype_t)tca6416_get_directions;
+set_directions_prototype_t set_directions=(set_directions_prototype_t)tca6416_set_directions;
+get_polarities_prototype_t get_polarities= (get_polarities_prototype_t)tca6416_get_polarities;
+set_polarities_prototype_t set_polarities= (set_polarities_prototype_t)tca6416_set_polarities;
 #else
 #error No IO Expander driver has been specified. e.g. GLOBAL_DEFINES := DRIVER_TCA6416 or DRIVER_ADP5589
 #endif
