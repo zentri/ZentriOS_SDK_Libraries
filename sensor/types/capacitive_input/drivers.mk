@@ -1,0 +1,10 @@
+
+ifneq ($(filter DRIVER_CAPACITIVE_INPUT_AD7156,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_CAPACITIVE_INPUT
+$(NAME)_COMPONENTS += libraries/drivers/capacitive_input/ad7156
+endif
+
+
+ifneq ($(filter SENSOR_LIB_CAPACITIVE_INPUT,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
+GLOBAL_INCLUDES += types/capacitive_input
+endif

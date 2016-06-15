@@ -10,6 +10,11 @@ GLOBAL_DEFINES += SENSOR_LIB_GYROSCOPE
 $(NAME)_COMPONENTS += libraries/drivers/gyroscopes/fxas21002c
 endif
 
+ifneq ($(filter DRIVER_GYROSCOPE_L3G4200D,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_GYROSCOPE
+$(NAME)_COMPONENTS += libraries/drivers/gyroscopes/l3g4200d
+endif
+
 ifneq ($(filter SENSOR_LIB_GYROSCOPE,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
 GLOBAL_INCLUDES += types/gyroscope
 endif

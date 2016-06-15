@@ -10,6 +10,11 @@ GLOBAL_DEFINES += SENSOR_LIB_MAGNETOMETER
 $(NAME)_COMPONENTS += libraries/drivers/magnetometers/fxos8700cq
 endif
 
+ifneq ($(filter DRIVER_MAGNETOMETER_HMC5883L,$(PROCESSED_SDK_DEFINES)),)
+GLOBAL_DEFINES += SENSOR_LIB_MAGNETOMETER
+$(NAME)_COMPONENTS += libraries/drivers/magnetometers/hmc5883l
+endif
+
 ifneq ($(filter SENSOR_LIB_MAGNETOMETER,$(GLOBAL_DEFINES) $(PROCESSED_SDK_DEFINES)),)
 GLOBAL_INCLUDES += types/magnetometer
 endif
