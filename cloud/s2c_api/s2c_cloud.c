@@ -11,11 +11,6 @@
 
 
 
-#define INTERNET_CONNECTION_CHECK_HOST "8.8.8.8"
-
-
-
-
 /*************************************************************************************************/
 WEAK zos_result_t s2c_cloud_connect(void)
 {
@@ -75,11 +70,11 @@ static zos_result_t check_internet_connection(void)
     for(int i = 0; i < 3; ++i)
     {
         zos_result_t result;
-        uint32_t reply_time;
+        uint32_t ip_address;
 
-        if(ZOS_FAILED(result, zn_network_ping(ZOS_WLAN, INTERNET_CONNECTION_CHECK_HOST, &reply_time)))
+        if(ZOS_FAILED(result, zn_network_lookup(ZOS_WLAN, "google.com", &ip_address)))
         {
-            zn_rtos_delay_milliseconds(500);
+            zn_rtos_delay_milliseconds(100);
         }
         else
         {
