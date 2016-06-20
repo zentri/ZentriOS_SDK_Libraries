@@ -10,15 +10,18 @@
 #include "s2c_api.h"
 
 
+#define INTERNET_CHECK_TIMEOUT 1000
+
 
 /*************************************************************************************************/
 WEAK zos_result_t s2c_cloud_connect(void)
 {
     zos_result_t result;
 
-    if(ZOS_FAILED(result, check_internet_connection()))
+    if(!check_internet_connection())
     {
         ZOS_LOG("No internet connection");
+        result = ZOS_NOT_CONNECTED;
     }
     else if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, s2c_app_context.settings->cloud.cert)))
     {
@@ -65,22 +68,8 @@ WEAK void s2c_cloud_disconnected_callback(void *arg)
 
 
 /*************************************************************************************************/
-static zos_result_t check_internet_connection(void)
+static zos_bool_t check_internet_connection(void)
 {
-    for(int i = 0; i < 3; ++i)
-    {
-        zos_result_t result;
-        uint32_t ip_address;
-
-        if(ZOS_FAILED(result, zn_network_lookup(ZOS_WLAN, "google.com", &ip_address)))
-        {
-            zn_rtos_delay_milliseconds(100);
-        }
-        else
-        {
-            return ZOS_SUCCESS;
-        }
-    }
-
-    return ZOS_ERROR;
+    uint32_t ip_address;
+    return (zn_network_lookup_with_timeout(ZOS_WLAN, s2c_app_context.settings->cloud.url, &ip_address, INTERNET_CHECK_TIMEOUT) == ZOS_SUCCESS);
 }
