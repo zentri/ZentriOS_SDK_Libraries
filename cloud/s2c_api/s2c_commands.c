@@ -12,7 +12,7 @@
 
 
 #define S2C_DEVICE_CONFIG_FILE "s2c_device_config.csv"
-
+#define CONFIG_LOADED_REG ZOS_BACKUP_REG_0
 
 
 /*************************************************************
@@ -66,24 +66,47 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
     ZOS_NVM_GET_REF(s2c_app_context.settings);
     ZOS_CMD_REGISTER_COMMANDS(s2c);
 
+    const uint32_t loaded_settings_flag = zn_backup_register_read(CONFIG_LOADED_REG);
+
     // if the nvm settings haven't been initialized, do it now
     if(s2c_app_context.settings->magic_number != setting_magic_number)
     {
         zos_file_t file_info;
 
-        // check if a config file is available
+        // check if the config file is available
+        // this is the device's settings just before it is OTA'd
         if(zn_file_stat(S2C_DEVICE_CONFIG_FILE, &file_info) == ZOS_SUCCESS)
         {
-            // a config file does exist meaning we just came from an OTA
-            // load the config file instead of the default settings
-            // NOTE: this will reboot the system if successful
-            zn_settings_load(S2C_DEVICE_CONFIG_FILE);
-        }
+            // check if we've already loaded the config file
+            if(loaded_settings_flag == setting_magic_number)
+            {
+                // the config file has already been loaded
+                //  update the magic number to what this app expects (this way we don't reload the settings again)
+                s2c_app_context.settings->magic_number = setting_magic_number;
+                zn_settings_save(NULL);
 
-        if(ZOS_FAILED(result, zn_load_ro_memory(s2c_app_context.settings, sizeof(s2c_app_settings_t), &s2c_default_app_settings, 0)))
+                // now that the config is loaded we can safely delete the config file
+                zn_file_delete(S2C_DEVICE_CONFIG_FILE);
+            }
+            else
+            {
+                ZOS_LOG("Restoring " S2C_DEVICE_CONFIG_FILE);
+
+                // set a flag in the backup reg indicating that the settings have been loaded
+                zn_backup_register_write(CONFIG_LOADED_REG, setting_magic_number);
+
+                // a config file does exist meaning we just came from an OTA
+                // load the config file instead of the default settings
+                // NOTE: this will reboot the system if successful
+                zn_settings_load(S2C_DEVICE_CONFIG_FILE);
+            }
+        }
+        // no config file is available, just load the default settings
+        else if(ZOS_FAILED(result, zn_load_ro_memory(s2c_app_context.settings, sizeof(s2c_app_settings_t), &s2c_default_app_settings, 0)))
         {
             ZOS_LOG("Failed to loaded default settings");
         }
+        // save the default settings to NVM
         else if(ZOS_FAILED(result, zn_settings_save(NULL)))
         {
             ZOS_LOG("Failed to save settings");
@@ -359,6 +382,8 @@ static void network_down_event_handler(void *arg)
 static void ota_event_handler(void *arg)
 {
     const char *version_str = (arg != NULL) ? arg : ZOS_DMS_UPDATE_FORCED;
+
+    zn_backup_register_write(CONFIG_LOADED_REG, 0);
     zn_dms_update(version_str);
     if(version_str != NULL)
     {
