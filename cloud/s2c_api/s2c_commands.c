@@ -22,7 +22,8 @@ ZOS_GETTERS_START(s2c)
     ZOS_ADD_GETTER("s2c.device_title", device_title),
     ZOS_ADD_GETTER("s2c.device_code", device_code),
     ZOS_ADD_GETTER("s2c.cloud_url", cloud_url),
-    ZOS_ADD_GETTER("s2c.capabilities_name", capabilities_name)
+    ZOS_ADD_GETTER("s2c.capabilities_name", capabilities_name),
+    ZOS_ADD_GETTER("s2c.flags", flags)
 ZOS_GETTERS_END
 
 /*************************************************************
@@ -34,7 +35,8 @@ ZOS_SETTERS_START(s2c)
     ZOS_ADD_SETTER("s2c.cloud_url", cloud_url),
     ZOS_ADD_SETTER("s2c.device_title", device_title),
     ZOS_ADD_SETTER("s2c.device_code", device_code),
-    ZOS_ADD_SETTER("s2c.debug_enabled", debug_enabled),
+    ZOS_ADD_SETTER("s2c.flags_enabled", flags_enabled),
+    ZOS_ADD_SETTER("s2c.flags_disabled", flags_disabled),
 ZOS_SETTERS_END
 
 /*************************************************************
@@ -124,6 +126,30 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
     zn_file_delete(S2C_DEVICE_CONFIG_FILE);
 
     return result;
+}
+
+/*************************************************************************************************/
+WEAK zos_bool_t s2c_is_admin_command(const char *cmd)
+{
+    static const char* const admin_commands[] =
+    {
+            "s2c_reset",
+            "s2c_setup",
+            "s2c_ota",
+            "ota",
+            "fac",
+            NULL
+    };
+
+    for(const char * const *c = admin_commands; *c != NULL; ++c)
+    {
+        if(strstr(*c, cmd) != NULL)
+        {
+            return ZOS_TRUE;
+        }
+    }
+
+    return ZOS_FALSE;
 }
 
 
@@ -304,18 +330,45 @@ ZOS_DEFINE_SETTER(cloud_url)
     return zn_cmd_set_str(argc, argv, s2c_app_context.settings->cloud.url, sizeof(s2c_app_context.settings->cloud.url)-1);
 }
 
+/*************************************************************************************************/
+ZOS_DEFINE_GETTER(flags)
+{
+    zn_cmd_format_response(CMD_SUCCESS, "0x%02X", s2c_app_context.settings->flags);
+    return CMD_SUCCESS;
+}
 
 /*************************************************************************************************/
-ZOS_DEFINE_SETTER(debug_enabled)
+ZOS_DEFINE_SETTER(flags_enabled)
 {
-    uint32_t flags = s2c_app_context.settings->flags;
-    zos_cmd_result_t result = zn_cmd_set_flag(argc, argv, &flags, S2C_FLAG_DEBUG_ENABLED);
-    s2c_app_context.settings->flags = flags;
-
-    s2c_set_setting(S2C_SETTING_FLAGS, (void*)flags);
-
-    return result;
+    const uint32_t flags = str_hex_to_uint32(argv[1]);
+    if(flags ==  UINT32_MAX)
+    {
+        return CMD_BAD_ARGS;
+    }
+    else
+    {
+        s2c_app_context.settings->flags |= flags;
+        s2c_set_setting(S2C_SETTING_FLAGS, (void*)s2c_app_context.settings->flags);
+        return CMD_SET_OK;
+    }
 }
+
+/*************************************************************************************************/
+ZOS_DEFINE_SETTER(flags_disabled)
+{
+    const uint32_t flags = str_hex_to_uint32(argv[1]);
+    if(flags ==  UINT32_MAX)
+    {
+        return CMD_BAD_ARGS;
+    }
+    else
+    {
+        s2c_app_context.settings->flags &= ~flags;
+        s2c_set_setting(S2C_SETTING_FLAGS, (void*)s2c_app_context.settings->flags);
+        return CMD_SET_OK;
+    }
+}
+
 
 
 /*************************************************************************************************/
