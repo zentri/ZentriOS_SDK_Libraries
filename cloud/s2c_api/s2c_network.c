@@ -135,6 +135,8 @@ static void handle_network_connect_state(const network_current_status_t *status)
 {
     s2c_streams_stop();
 
+    s2c_app_context.internet_state = S2C_INTERNET_STATE_PENDING;
+
     if(status->network_is_up)
     {
         update_state(S2C_NETWORK_STATE_LOCAL_MODE);
@@ -198,6 +200,19 @@ static void handle_cloud_connect_state(const network_current_status_t *status)
     {
         zos_result_t result;
 
+        if(s2c_app_context.internet_state == S2C_INTERNET_STATE_PENDING)
+        {
+            if(!s2c_cloud_check_internet_connection())
+            {
+                goto error_exit;
+            }
+            return;
+        }
+        else if(s2c_app_context.internet_state == S2C_INTERNET_STATE_FAILED)
+        {
+            goto error_exit;
+        }
+
         INCREMENT_RETRY_COUNT(cloud);
         if(ZOS_FAILED(result, s2c_cloud_connect()))
         {
@@ -207,7 +222,9 @@ static void handle_cloud_connect_state(const network_current_status_t *status)
             }
             else
             {
+                error_exit:
                 s2c_app_context.cloud_retry_count = CLOUD_MAX_CONNECT_RETRIES;
+                s2c_app_context.internet_state = S2C_INTERNET_STATE_PENDING;
                 zn_event_register_timed(clear_retries_event_handler, (void*)&s2c_app_context.cloud_retry_count, CLOUD_RECONNECT_PERIOD,0);
                 update_state(S2C_NETWORK_STATE_LOCAL_MODE);
             }

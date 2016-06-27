@@ -29,6 +29,12 @@ typedef enum
     S2C_NETWORK_STATE_CLOUD_MODE
 } s2c_network_state_t;
 
+typedef enum
+{
+    S2C_INTERNET_STATE_PENDING,
+    S2C_INTERNET_STATE_VALID,
+    S2C_INTERNET_STATE_FAILED
+} s2c_internet_state_t;
 
 typedef struct
 {
@@ -57,6 +63,7 @@ typedef struct
     s2c_network_state_t state;
     zos_bool_t initialized;
     zos_bool_t streams_started;
+    s2c_internet_state_t internet_state;
     zos_bool_t forced_setup_mode;
     zos_bool_t forced_cloud_disconnect;
     uint8_t network_retry_count;

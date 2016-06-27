@@ -10,20 +10,13 @@
 #include "s2c_api.h"
 
 
-#define INTERNET_CHECK_TIMEOUT 1000
-
 
 /*************************************************************************************************/
 WEAK zos_result_t s2c_cloud_connect(void)
 {
     zos_result_t result;
 
-    if(!check_internet_connection())
-    {
-        ZOS_LOG("No internet connection");
-        result = ZOS_NOT_CONNECTED;
-    }
-    else if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, s2c_app_context.settings->cloud.cert)))
+    if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, s2c_app_context.settings->cloud.cert)))
     {
         ZOS_LOG("Cloud connection failed: %d", result);
 
@@ -54,6 +47,7 @@ WEAK zos_result_t s2c_cloud_connect(void)
 WEAK void s2c_cloud_disconnect(void *unused)
 {
     ZOS_LOG("Closing cloud connection");
+    s2c_app_context.internet_state = S2C_INTERNET_STATE_PENDING;
     s2c_close_cloud_connection();
 }
 
@@ -61,15 +55,36 @@ WEAK void s2c_cloud_disconnect(void *unused)
 WEAK void s2c_cloud_disconnected_callback(void *arg)
 {
     ZOS_LOG("Disconnected from cloud server");
+    s2c_app_context.internet_state = S2C_INTERNET_STATE_PENDING;
     s2c_network_state_update();
 }
 
-
-
+/*************************************************************************************************/
+WEAK zos_bool_t s2c_cloud_check_internet_connection(void)
+{
+    const char *url = strstr(s2c_app_context.settings->cloud.url, "://");
+    if(url != NULL)
+    {
+        url += 3;
+    }
+    else
+    {
+        url = s2c_app_context.settings->cloud.url;
+    }
+    return (zn_issue_command_with_callback(zos_command_callback, "nlo %s", url) == ZOS_SUCCESS);
+}
 
 /*************************************************************************************************/
-static zos_bool_t check_internet_connection(void)
+static void zos_command_callback(const zos_command_callback_context_t *context)
 {
-    uint32_t ip_address;
-    return (zn_network_lookup_with_timeout(ZOS_WLAN, s2c_app_context.settings->cloud.url, &ip_address, INTERNET_CHECK_TIMEOUT) == ZOS_SUCCESS);
+    if(context->result == ZOS_SUCCESS)
+    {
+        s2c_app_context.internet_state = S2C_INTERNET_STATE_VALID;
+    }
+    else
+    {
+        ZOS_LOG("No internet connection");
+        s2c_app_context.internet_state = S2C_INTERNET_STATE_FAILED;
+    }
+    zn_event_issue(s2c_network_state_event_handler, NULL, 0);
 }
