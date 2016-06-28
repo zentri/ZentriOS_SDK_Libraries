@@ -11,7 +11,6 @@
 #include "s2c_api.h"
 
 
-#define S2C_DEVICE_CONFIG_FILE "s2c_device_config.csv"
 #define CONFIG_LOADED_REG ZOS_BACKUP_REG_0
 
 
@@ -55,8 +54,12 @@ ZOS_COMMAND_LISTS(s2c);
 
 
 
+static const char* s2c_app_name;
+
+
+
 /*************************************************************************************************/
-WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
+WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name)
 {
     zos_result_t result = ZOS_SUCCESS;
 
@@ -68,6 +71,8 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
     ZOS_NVM_GET_REF(s2c_app_context.settings);
     ZOS_CMD_REGISTER_COMMANDS(s2c);
 
+    s2c_app_name = app_name;
+
     const uint32_t loaded_settings_flag = zn_backup_register_read(CONFIG_LOADED_REG);
 
     // if the nvm settings haven't been initialized, do it now
@@ -77,7 +82,7 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
 
         // check if the config file is available
         // this is the device's settings just before it is OTA'd
-        if(zn_file_stat(S2C_DEVICE_CONFIG_FILE, &file_info) == ZOS_SUCCESS)
+        if(zn_file_stat(app_name, &file_info) == ZOS_SUCCESS)
         {
             // check if we've already loaded the config file
             if(loaded_settings_flag == setting_magic_number)
@@ -88,11 +93,11 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
                 zn_settings_save(NULL);
 
                 // now that the config is loaded we can safely delete the config file
-                zn_file_delete(S2C_DEVICE_CONFIG_FILE);
+                zn_file_delete(app_name);
             }
             else
             {
-                ZOS_LOG("Restoring " S2C_DEVICE_CONFIG_FILE);
+                ZOS_LOG("Restoring %s", app_name);
 
                 // set a flag in the backup reg indicating that the settings have been loaded
                 zn_backup_register_write(CONFIG_LOADED_REG, setting_magic_number);
@@ -100,7 +105,7 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
                 // a config file does exist meaning we just came from an OTA
                 // load the config file instead of the default settings
                 // NOTE: this will reboot the system if successful
-                zn_settings_load(S2C_DEVICE_CONFIG_FILE);
+                zn_settings_load(app_name);
             }
         }
         // no config file is available, just load the default settings
@@ -123,7 +128,7 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number)
 
     // at this point the config file must have been loaded,
     // delete it so it isn't reused (if the file exists)
-    zn_file_delete(S2C_DEVICE_CONFIG_FILE);
+    zn_file_delete(app_name);
 
     return result;
 }
@@ -248,11 +253,11 @@ ZOS_DEFINE_COMMAND(s2c_ota)
     ZOS_LOG("Preparing for OTA ...");
 
     // deleted the old settings (if it exists)
-    zn_file_delete(S2C_DEVICE_CONFIG_FILE);
+    zn_file_delete(s2c_app_name);
 
     // save the current settings to the config file
     // the settings will be loaded after the OTA
-    zn_settings_save(S2C_DEVICE_CONFIG_FILE);
+    zn_settings_save(s2c_app_name);
 
     char *version_str = NULL;
 
