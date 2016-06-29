@@ -36,6 +36,7 @@ typedef enum
     S2C_INTERNET_STATE_FAILED
 } s2c_internet_state_t;
 
+#ifndef S2C_CUSTOM_APP_SETTINGS_PATH
 typedef struct
 {
     uint32_t magic_number;
@@ -56,6 +57,9 @@ typedef struct
     char caps_filename[32];
     s2c_flag_t flags;
 } s2c_app_settings_t;
+#else
+#include S2C_CUSTOM_APP_SETTINGS_PATH
+#endif
 
 typedef struct
 {

@@ -91,9 +91,6 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *a
                 //  update the magic number to what this app expects (this way we don't reload the settings again)
                 s2c_app_context.settings->magic_number = setting_magic_number;
                 zn_settings_save(NULL);
-
-                // now that the config is loaded we can safely delete the config file
-                zn_file_delete(app_name);
             }
             else
             {
@@ -129,6 +126,11 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *a
     // at this point the config file must have been loaded,
     // delete it so it isn't reused (if the file exists)
     zn_file_delete(app_name);
+
+
+    // now that the config file is loaded and deleted
+    // we can clear the 'config loaded' flag
+    zn_backup_register_write(CONFIG_LOADED_REG, 0);
 
     return result;
 }
