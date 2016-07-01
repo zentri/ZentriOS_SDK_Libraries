@@ -97,46 +97,52 @@ WEAK void s2c_streams_read_request_event_handler(void *stream_name)
 /*************************************************************************************************/
 WEAK void s2c_streams_write_bool_value(const char *stream, zos_bool_t value)
 {
-    char buffer[32];
-    sprintf(buffer, "\"value\":%u}", (unsigned int)value);
-    send_stream_data(stream, buffer);
+    uint8_t buffer[32];
+    MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
+    msgpack_write_bool(&context, value);
+    send_stream_value(stream, &context);
 }
 
 /*************************************************************************************************/
 WEAK void s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value)
 {
-    char buffer[32];
     char fpi_str[16];
-    sprintf(buffer, "\"value\":%s}", fpi_to_str(fpi_str, value));
-    send_stream_data(stream, buffer);
+    uint8_t buffer[32];
+    MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
+    msgpacket_write_str(&context, fpi_to_str(fpi_str, value));
+    send_stream_value(stream, &context);
 }
 
 /*************************************************************************************************/
 WEAK void s2c_streams_write_uint32_value(const char *stream, uint32_t value)
 {
-    char buffer[32];
-    sprintf(buffer, "\"value\":%u}", (unsigned int)value);
-    send_stream_data(stream, buffer);
+    uint8_t buffer[32];
+    MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
+    msgpack_write_uint(&context, value);
+    send_stream_value(stream, &context);
 }
 
 
 
 /*************************************************************************************************/
-static void send_stream_data(const char *stream, const char *json_data)
+static void send_stream_value(const char *stream, msgpack_context_t *context)
 {
     zos_result_t result;
     uint64_t time;
-    char buffer[96];
-    char *ptr = buffer;
+    msgpack_context_t msg_context;
+
     zn_time_get_rtc_time_raw(&time);
 
-    ptr += sprintf(ptr, "{\"at\":");
-    uint64_to_str(&time, ptr);
-    ptr += strlen(ptr);
-    *ptr++ = ',';
-    strcpy(ptr, json_data);
+    //  A stream message has the following format:
+    // { "at" : <timestamp>,
+    //   "value" : <message value>
+    // }
+    s2c_write_stream_context_init(&msg_context, stream);
+    msgpack_write_dict_marker(&msg_context, 2);
+    msgpack_write_dict_ulong(&msg_context, "at", &time);
+    msgpack_write_dict_context(&msg_context, "value", context);
 
-    if(ZOS_FAILED(result, s2c_write_stream_str(stream, buffer)))
+    if(ZOS_FAILED(result, s2c_write_stream_context_flush(&msg_context)))
     {
     }
 
