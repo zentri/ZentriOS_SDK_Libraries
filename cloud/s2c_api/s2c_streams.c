@@ -109,7 +109,7 @@ WEAK void s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *valu
     char fpi_str[16];
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
-    msgpacket_write_str(&context, fpi_to_str(fpi_str, value));
+    msgpack_write_str(&context, fpi_to_str(fpi_str, value));
     send_stream_value(stream, &context);
 }
 
@@ -137,12 +137,12 @@ static void send_stream_value(const char *stream, msgpack_context_t *context)
     // { "at" : <timestamp>,
     //   "value" : <message value>
     // }
-    s2c_write_stream_context_init(&msg_context, stream);
+    s2c_write_stream_context_init(&msg_context, stream, 32 + MSGPACK_BUFFER_USED(context));
     msgpack_write_dict_marker(&msg_context, 2);
     msgpack_write_dict_ulong(&msg_context, "at", &time);
     msgpack_write_dict_context(&msg_context, "value", context);
 
-    if(ZOS_FAILED(result, s2c_write_stream_context_flush(&msg_context)))
+    if(ZOS_FAILED(result, s2c_write_stream_context_flush()))
     {
     }
 
