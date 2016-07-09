@@ -208,6 +208,7 @@ ZOS_DEFINE_COMMAND(s2c_connect)
 
     s2c_app_context.forced_setup_mode = ZOS_FALSE;
     s2c_app_context.forced_cloud_disconnect = ZOS_FALSE;
+    s2c_app_context.cloud_retry_count = 0;
     zn_event_issue(s2c_network_state_event_handler, NULL, 0);
 
     return CMD_EXECUTE_AOK;
