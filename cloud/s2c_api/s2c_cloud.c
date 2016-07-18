@@ -71,7 +71,16 @@ WEAK zos_bool_t s2c_cloud_check_internet_connection(void)
     {
         url = s2c_app_context.settings->cloud.url;
     }
-    return (zn_issue_command_with_callback(zos_command_callback, "nlo %s", url) == ZOS_SUCCESS);
+
+    strcpy(s2c_app_context.cloud_domain, url);
+
+    char *end =  strchr(s2c_app_context.cloud_domain, ':');
+    if(end != NULL)
+    {
+        *end = 0;
+    }
+
+    return (zn_issue_command_with_callback(zos_command_callback, "nlo %s", s2c_app_context.cloud_domain) == ZOS_SUCCESS);
 }
 
 /*************************************************************************************************/
