@@ -103,6 +103,14 @@ WEAK void s2c_streams_write_bool_value(const char *stream, zos_bool_t value)
 }
 
 /*************************************************************************************************/
+WEAK void s2c_streams_write_string_value(const char *stream, const char *value)
+{
+    char buffer[32];
+    sprintf(buffer, "\"value\":%s}", value);
+    send_stream_data(stream, buffer);
+}
+
+/*************************************************************************************************/
 WEAK void s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value)
 {
     char buffer[32];

@@ -47,6 +47,7 @@ void s2c_streams_start(void);
 void s2c_streams_stop(void);
 void s2c_streams_read_request_event_handler(void *arg);
 void s2c_streams_write_bool_value(const char *stream, zos_bool_t value);
+void s2c_streams_write_string_value(const char *stream, const char *value);
 void s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value);
 void s2c_streams_write_uint32_value(const char *stream, uint32_t value);
 
