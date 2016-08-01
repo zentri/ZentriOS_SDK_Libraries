@@ -142,7 +142,7 @@ static void send_stream_value(const char *stream, msgpack_context_t *context)
     msgpack_write_dict_ulong(&msg_context, "at", &time);
     msgpack_write_dict_context(&msg_context, "value", context);
 
-    if(ZOS_FAILED(result, s2c_write_stream_context_flush()))
+    if(ZOS_FAILED(result, s2c_write_stream_context_flush(context)))
     {
     }
 
