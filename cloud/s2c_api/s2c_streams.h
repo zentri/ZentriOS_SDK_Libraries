@@ -49,6 +49,6 @@ void s2c_streams_read_request_event_handler(void *arg);
 void s2c_streams_write_bool_value(const char *stream, zos_bool_t value);
 void s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value);
 void s2c_streams_write_uint32_value(const char *stream, uint32_t value);
-
+void s2c_streams_write_int32_value( const char *stream, int32_t value );
 
 extern const s2c_stream_t const platform_streams_mapping[];

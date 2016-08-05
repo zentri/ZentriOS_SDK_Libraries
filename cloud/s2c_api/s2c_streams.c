@@ -122,7 +122,14 @@ WEAK void s2c_streams_write_uint32_value(const char *stream, uint32_t value)
     send_stream_value(stream, &context);
 }
 
-
+/*************************************************************************************************/
+WEAK void s2c_streams_write_int32_value( const char* stream, int32_t value )
+{
+    uint8_t buffer[32];
+    MSGPACK_INIT_WITH_BUFFER( context, buffer, sizeof( buffer ) );
+    msgpack_write_int( &context, value );
+    send_stream_value( stream, &context );
+}
 
 /*************************************************************************************************/
 static void send_stream_value(const char *stream, msgpack_context_t *context)
