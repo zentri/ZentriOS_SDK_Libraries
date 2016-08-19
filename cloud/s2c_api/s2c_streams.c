@@ -10,8 +10,7 @@
 
 #include "s2c_api.h"
 
-
-
+static zos_result_t send_stream_value(const char *stream, msgpack_context_t *context);
 
 
 /*************************************************************************************************/
@@ -95,44 +94,44 @@ WEAK void s2c_streams_read_request_event_handler(void *stream_name)
 
 
 /*************************************************************************************************/
-WEAK void s2c_streams_write_bool_value(const char *stream, zos_bool_t value)
+WEAK zos_result_t s2c_streams_write_bool_value(const char *stream, zos_bool_t value)
 {
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
-    msgpack_write_bool(&context, value);
-    send_stream_value(stream, &context);
+    ZOS_VERIFY( msgpack_write_bool(&context, value) );
+    return send_stream_value(stream, &context);
 }
 
 /*************************************************************************************************/
-WEAK void s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value)
+WEAK zos_result_t s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value)
 {
     char fpi_str[16];
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
-    msgpack_write_str(&context, fpi_to_str(fpi_str, value));
-    send_stream_value(stream, &context);
+    ZOS_VERIFY( msgpack_write_str(&context, fpi_to_str(fpi_str, value)) );
+    return send_stream_value(stream, &context);
 }
 
 /*************************************************************************************************/
-WEAK void s2c_streams_write_uint32_value(const char *stream, uint32_t value)
+WEAK zos_result_t s2c_streams_write_uint32_value(const char *stream, uint32_t value)
 {
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
-    msgpack_write_uint(&context, value);
-    send_stream_value(stream, &context);
+    ZOS_VERIFY( msgpack_write_uint(&context, value) );
+    return send_stream_value(stream, &context);
 }
 
 /*************************************************************************************************/
-WEAK void s2c_streams_write_int32_value( const char* stream, int32_t value )
+WEAK zos_result_t s2c_streams_write_int32_value( const char* stream, int32_t value )
 {
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER( context, buffer, sizeof( buffer ) );
-    msgpack_write_int( &context, value );
-    send_stream_value( stream, &context );
+    ZOS_VERIFY( msgpack_write_int( &context, value ) );
+    return send_stream_value( stream, &context );
 }
 
 /*************************************************************************************************/
-static void send_stream_value(const char *stream, msgpack_context_t *context)
+static zos_result_t send_stream_value(const char *stream, msgpack_context_t *context)
 {
     zos_result_t result;
     uint64_t time;
@@ -144,10 +143,10 @@ static void send_stream_value(const char *stream, msgpack_context_t *context)
     // { "at" : <timestamp>,
     //   "value" : <message value>
     // }
-    s2c_write_stream_context_init(&msg_context, stream, 32 + MSGPACK_BUFFER_USED(context));
-    msgpack_write_dict_marker(&msg_context, 2);
-    msgpack_write_dict_ulong(&msg_context, "at", &time);
-    msgpack_write_dict_context(&msg_context, "value", context);
+    ZOS_VERIFY( s2c_write_stream_context_init(&msg_context, stream, 32 + MSGPACK_BUFFER_USED(context)) );
+    ZOS_VERIFY( msgpack_write_dict_marker(&msg_context, 2) );
+    ZOS_VERIFY( msgpack_write_dict_ulong(&msg_context, "at", &time) );
+    ZOS_VERIFY( msgpack_write_dict_context(&msg_context, "value", context) );
 
     if(ZOS_FAILED(result, s2c_write_stream_context_flush(&msg_context)))
     {
@@ -158,4 +157,5 @@ static void send_stream_value(const char *stream, msgpack_context_t *context)
     {
         s2c_streams_stop();
     }
+    return result;
 }
