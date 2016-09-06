@@ -16,7 +16,7 @@ WEAK zos_result_t s2c_cloud_connect(void)
 {
     zos_result_t result;
 
-    if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, s2c_app_context.settings->cloud.cert)))
+    if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, NULL)))
     {
         ZOS_LOG("Cloud connection failed: %d", result);
 

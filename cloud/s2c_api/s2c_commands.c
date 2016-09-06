@@ -59,7 +59,7 @@ static const char* s2c_app_name;
 
 
 /*************************************************************************************************/
-WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name)
+WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name, const void *default_settings, uint16_t default_settings_len)
 {
     zos_result_t result = ZOS_SUCCESS;
 
@@ -106,7 +106,7 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *a
             }
         }
         // no config file is available, just load the default settings
-        else if(ZOS_FAILED(result, zn_load_ro_memory(s2c_app_context.settings, sizeof(s2c_app_settings_t), &s2c_default_app_settings, 0)))
+        else if(ZOS_FAILED(result, zn_load_ro_memory(s2c_app_context.settings, default_settings_len, default_settings, 0)))
         {
             ZOS_LOG("Failed to loaded default settings");
         }

@@ -42,8 +42,7 @@ typedef struct
     uint32_t magic_number;
     struct
     {
-        char url[64];
-        char cert[32];
+        char url[32];
         char token[36];
     } cloud;
     struct
@@ -54,7 +53,7 @@ typedef struct
 
     char device_title[S2C_DEVICE_TITLE_SIZE];
     char device_code[S2C_DEVICE_CODE_SIZE];
-    char caps_filename[32];
+    char caps_filename[24];
     s2c_flag_t flags;
 } s2c_app_settings_t;
 #else
@@ -80,7 +79,5 @@ typedef struct
 
 
 extern s2c_app_context_t s2c_app_context;
-extern RO_MEM s2c_app_settings_t s2c_default_app_settings;
-
 
 zos_result_t s2c_api_init(const s2c_config_t config);
