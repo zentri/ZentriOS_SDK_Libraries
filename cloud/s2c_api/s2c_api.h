@@ -73,6 +73,13 @@ typedef struct
     uint8_t cloud_retry_count;
     uint8_t softap_retry_count;
     char cloud_domain[32];
+#ifdef S2C_HOST_BUILD
+    struct
+    {
+        uint8_t *buffer;
+        uint16_t length;
+    } broadcast_app_data;
+#endif
 } s2c_app_context_t;
 
 
@@ -81,3 +88,4 @@ typedef struct
 extern s2c_app_context_t s2c_app_context;
 
 zos_result_t s2c_api_init(const s2c_config_t config);
+
