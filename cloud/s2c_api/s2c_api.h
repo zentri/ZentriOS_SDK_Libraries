@@ -42,7 +42,7 @@ typedef struct
     uint32_t magic_number;
     struct
     {
-        char url[32];
+        char url[48];
         char token[36];
     } cloud;
     struct
