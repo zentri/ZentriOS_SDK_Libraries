@@ -73,6 +73,7 @@ typedef struct
     uint8_t cloud_retry_count;
     uint8_t softap_retry_count;
     char cloud_domain[32];
+    const char *cloud_cert_filename;
 #ifdef S2C_HOST_BUILD
     struct
     {

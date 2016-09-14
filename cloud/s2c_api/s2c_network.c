@@ -214,7 +214,7 @@ static void handle_cloud_connect_state(const network_current_status_t *status)
         }
 
         INCREMENT_RETRY_COUNT(cloud);
-        if(ZOS_FAILED(result, s2c_cloud_connect()))
+        if(ZOS_FAILED(result, s2c_cloud_connect(s2c_app_context.cloud_cert_filename)))
         {
             if(!NOT_MAX_RETRIES(cloud, CLOUD_MAX_CONNECT_RETRIES) && CLOUD_TOKEN_VALID())
             {
