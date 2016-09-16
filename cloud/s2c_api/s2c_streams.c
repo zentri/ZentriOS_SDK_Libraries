@@ -10,7 +10,6 @@
 
 #include "s2c_api.h"
 
-static zos_result_t send_stream_value(const char *stream, msgpack_context_t *context);
 
 
 /*************************************************************************************************/
@@ -99,7 +98,7 @@ WEAK zos_result_t s2c_streams_write_bool_value(const char *stream, zos_bool_t va
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
     ZOS_VERIFY( msgpack_write_bool(&context, value) );
-    return send_stream_value(stream, &context);
+    return s2c_streams_write_context(stream, &context);
 }
 
 /*************************************************************************************************/
@@ -109,8 +108,18 @@ WEAK zos_result_t s2c_streams_write_fpi_value(const char *stream, const fpi_word
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
     ZOS_VERIFY( msgpack_write_str(&context, fpi_to_str(fpi_str, value)) );
-    return send_stream_value(stream, &context);
+    return s2c_streams_write_context(stream, &context);
 }
+
+/*************************************************************************************************/
+WEAK zos_result_t s2c_streams__write_float_value(const char *stream, float value)
+{
+    uint8_t buffer[16];
+    MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
+    msgpack_write_float(&context, value);
+    return s2c_streams_write_context(stream, &context);
+}
+
 
 /*************************************************************************************************/
 WEAK zos_result_t s2c_streams_write_uint32_value(const char *stream, uint32_t value)
@@ -118,7 +127,7 @@ WEAK zos_result_t s2c_streams_write_uint32_value(const char *stream, uint32_t va
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));
     ZOS_VERIFY( msgpack_write_uint(&context, value) );
-    return send_stream_value(stream, &context);
+    return s2c_streams_write_context(stream, &context);
 }
 
 /*************************************************************************************************/
@@ -127,25 +136,75 @@ WEAK zos_result_t s2c_streams_write_int32_value( const char* stream, int32_t val
     uint8_t buffer[32];
     MSGPACK_INIT_WITH_BUFFER( context, buffer, sizeof( buffer ) );
     ZOS_VERIFY( msgpack_write_int( &context, value ) );
-    return send_stream_value( stream, &context );
+    return s2c_streams_write_context( stream, &context );
 }
 
 /*************************************************************************************************/
-static zos_result_t send_stream_value(const char *stream, msgpack_context_t *context)
+WEAK zos_result_t s2c_streams_write_str_value(const char *stream, const char *str)
 {
     zos_result_t result;
-    uint64_t time;
+    const int slen = strlen(str);
     msgpack_context_t msg_context;
 
-    zn_time_get_rtc_time_raw(&time);
+    //  A stream message has the following format:
+    // { "value" : "<message value>" }
+    if(!ZOS_FAILED(result, s2c_write_stream_context_init(&msg_context, stream, 16 + slen)))
+    {
+        msgpack_write_dict_marker(&msg_context, 1);
+        msgpack_write_dict_str(&msg_context, "value", str);
+
+        if(ZOS_FAILED(result, s2c_write_stream_context_flush(&msg_context)))
+        {
+        }
+    }
+
+    // If this fails because no cloud and/or local client are connected then stop the streams
+    if(result == ZOS_NOT_CONNECTED)
+    {
+        s2c_streams_stop();
+    }
+
+    return result;
+}
+
+/*************************************************************************************************/
+WEAK zos_result_t s2c_streams_write_bin_value(const char *stream, void *data, uint16_t length)
+{
+    zos_result_t result;
+    msgpack_context_t msg_context;
 
     //  A stream message has the following format:
-    // { "at" : <timestamp>,
-    //   "value" : <message value>
-    // }
+    // { "value" : "<message value>" }
+    if(!ZOS_FAILED(result, s2c_write_stream_context_init(&msg_context, stream, 16 + length)))
+    {
+        msgpack_write_dict_marker(&msg_context, 1);
+        msgpack_write_dict_bin(&msg_context, "value", data, length);
+
+        if(ZOS_FAILED(result, s2c_write_stream_context_flush(&msg_context)))
+        {
+        }
+    }
+
+    // If this fails because no cloud and/or local client are connected then stop the streams
+    if(result == ZOS_NOT_CONNECTED)
+    {
+        s2c_streams_stop();
+    }
+
+    return result;
+}
+
+/*************************************************************************************************/
+WEAK zos_result_t s2c_streams_write_context(const char *stream, msgpack_context_t *context)
+{
+    zos_result_t result;
+    msgpack_context_t msg_context;
+
+
+    //  A stream message has the following format:
+    // { "value" : <message value>  }
     ZOS_VERIFY( s2c_write_stream_context_init(&msg_context, stream, 32 + MSGPACK_BUFFER_USED(context)) );
-    ZOS_VERIFY( msgpack_write_dict_marker(&msg_context, 2) );
-    ZOS_VERIFY( msgpack_write_dict_ulong(&msg_context, "at", &time) );
+    ZOS_VERIFY( msgpack_write_dict_marker(&msg_context, 1) );
     ZOS_VERIFY( msgpack_write_dict_context(&msg_context, "value", context) );
 
     if(ZOS_FAILED(result, s2c_write_stream_context_flush(&msg_context)))

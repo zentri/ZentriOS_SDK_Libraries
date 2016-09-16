@@ -47,8 +47,12 @@ void s2c_streams_start(void);
 void s2c_streams_stop(void);
 void s2c_streams_read_request_event_handler(void *arg);
 zos_result_t s2c_streams_write_bool_value(const char *stream, zos_bool_t value);
+zos_result_t s2c_streams_write_float_value(const char *stream, float value);
 zos_result_t s2c_streams_write_fpi_value(const char *stream, const fpi_word_t *value);
 zos_result_t s2c_streams_write_uint32_value(const char *stream, uint32_t value);
 zos_result_t s2c_streams_write_int32_value( const char *stream, int32_t value );
+zos_result_t s2c_streams_write_str_value(const char *stream, const char *str);
+zos_result_t s2c_streams_write_bin_value(const char *stream, void *data, uint16_t length);
+zos_result_t s2c_streams_write_context(const char *stream, msgpack_context_t *context);
 
 extern const s2c_stream_t const platform_streams_mapping[];
