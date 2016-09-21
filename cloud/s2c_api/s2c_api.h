@@ -90,3 +90,4 @@ extern s2c_app_context_t s2c_app_context;
 
 zos_result_t s2c_api_init(const s2c_config_t config);
 
+void s2c_api_update_softap_domain_list(void);
