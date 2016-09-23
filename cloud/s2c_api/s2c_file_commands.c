@@ -21,9 +21,11 @@
  * Commands List
  */
 ZOS_COMMANDS_START(file)
+#ifndef S2C_HOST_BUILD
     ZOS_ADD_COMMAND("s2c_fst",      2, 2, ZOS_FALSE, s2c_file_stat),
     ZOS_ADD_COMMAND("s2c_fde",      2, 2, ZOS_FALSE, s2c_file_delete),
     ZOS_ADD_COMMAND("s2c_fls",      1, 2, ZOS_FALSE, s2c_file_list),
+#endif
     ZOS_ADD_COMMAND("s2c_fdo",      2, 3, ZOS_FALSE, s2c_file_download),
     ZOS_ADD_COMMAND("s2c_fup",      2, 3, ZOS_FALSE, s2c_file_upload),
     ZOS_ADD_COMMAND("$",            1, 10, ZOS_FALSE, s2c_raw_mobile_command),
@@ -96,6 +98,8 @@ static void raw_mobile_command(void *arg)
 
     EXIT_COMMAND();
 }
+
+#ifndef S2C_HOST_BUILD
 
 /*************************************************************************************************/
 ZOS_DEFINE_COMMAND(s2c_file_stat)
@@ -191,6 +195,8 @@ static void file_list(void *arg)
     EXIT_COMMAND();
 }
 
+#endif
+
 /*************************************************************************************************/
 ZOS_DEFINE_COMMAND(s2c_file_download)
 {
@@ -204,7 +210,9 @@ static void file_download(void *arg)
     zos_result_t result;
     s2c_file_target_t target = arg_to_target(argv[0]);
     const char *remote_filename = argv[1];
-    const char *local_filename = (argc > 2) ? argv[2] : NULL;
+    const char *local_filename = (argc > 2) ? argv[2] : remote_filename;
+
+    zn_file_delete(local_filename);
 
     if(ZOS_FAILED(result, s2c_file_download(target, remote_filename, local_filename)))
     {
@@ -260,6 +268,11 @@ static s2c_file_target_t arg_to_target(char *target_arg)
     {
         return S2C_FILE_TARGET_DMS_PRODUCT;
     }
+    else if(strncmp(target_arg, "mobile", 6) == 0)
+    {
+        const uint8_t mobile_num = target_arg[6] - '0';
+        return  S2C_FILE_TARGET_MOBILE(mobile_num);
+    }
     else
     {
         return S2C_FILE_TARGET_MOBILE(0);
@@ -273,6 +286,11 @@ static zos_cmd_result_t issue_command_in_zap_thread(zos_event_handler_t handler,
     zn_rtos_semaphore_init(&context.wait_sem);
     context.argc = argc;
     context.argv = argv;
+
+    if(zn_network_up(ZOS_WLAN, ZOS_TRUE) != ZOS_SUCCESS)
+    {
+        return CMD_FAILED;
+    }
 
     zn_event_issue(handler, &context, 0);
 
