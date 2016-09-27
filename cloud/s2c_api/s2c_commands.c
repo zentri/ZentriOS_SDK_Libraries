@@ -232,28 +232,7 @@ ZOS_DEFINE_COMMAND(s2c_disconnect)
 ZOS_DEFINE_COMMAND(s2c_ota)
 {
     zos_result_t result;
-    zos_bool_t update_available;
-    char msg_buffer[128] = { 0 };
-
-    if(argc == 0)
-    {
-        if(ZOS_FAILED(result, check_for_update(msg_buffer, &update_available)))
-        {
-            return CMD_FAILED;
-        }
-
-        if(update_available)
-        {
-            ZOS_LOG("New firmware available: %s", msg_buffer);
-        }
-        else
-        {
-            ZOS_LOG("Firmware up-to-date");
-            s2c_app_context.forced_cloud_disconnect = ZOS_FALSE;
-            zn_event_issue(s2c_network_state_event_handler, NULL, 0);
-            return CMD_SUCCESS;
-        }
-    }
+    const char *version_str = NULL;
 
     ZOS_LOG("Preparing for OTA ...");
 
@@ -264,27 +243,41 @@ ZOS_DEFINE_COMMAND(s2c_ota)
     // the settings will be loaded after the OTA
     zn_settings_save(s2c_app_name);
 
-    char *version_str = NULL;
 
     if(argc > 0)
     {
         const int len = strlen(argv[0]);
         if(len > 0)
         {
-            version_str = zn_malloc_ptr(len+1);
-            if(version_str != NULL)
-            {
-                strcpy(version_str, argv[0]);
-            }
+           if(strcmp(argv[0], "-f") == 0)
+           {
+               version_str = ZOS_DMS_UPDATE_FORCED;
+           }
+           else
+           {
+               version_str = argv[0];
+           }
         }
     }
 
-    // Note: we wait a moment because this will reboot ZentriOS
-    // we want to ensure that the command response is sent to the mobile app before doing so
-    zn_event_register_timed(ota_event_handler, version_str, 500, 0);
+    ZOS_LOG("Invoking OTA ...");
+    zn_backup_register_write(CONFIG_LOADED_REG, 0);
+    result = zn_dms_update_with_callback(version_str, zn_dms_update_callback);
 
-    return CMD_EXECUTE_AOK;
+    // the above API doesn't return if successful,
+    // if we get here then somthing failed
+    zn_cmd_format_response(CMD_FAILED, "Failed to invoke update, err:%d", result);
+
+    // the response is already printed, just return success so nothing else is printed
+    return CMD_SUCCESS;
 }
+
+/*************************************************************************************************/
+static void zn_dms_update_callback(void)
+{
+    zn_cmd_format_response(CMD_SUCCESS, "Updating starting ...");
+}
+
 
 #ifdef S2C_HOST_BUILD
 
@@ -496,19 +489,6 @@ static void network_down_event_handler(void *arg)
 }
 
 /*************************************************************************************************/
-static void ota_event_handler(void *arg)
-{
-    const char *version_str = (arg != NULL) ? arg : ZOS_DMS_UPDATE_FORCED;
-
-    zn_backup_register_write(CONFIG_LOADED_REG, 0);
-    zn_dms_update(version_str);
-    if(version_str != NULL)
-    {
-        zn_free((void*)version_str);
-    }
-}
-
-/*************************************************************************************************/
 static void bring_down_cloud_connection(void)
 {
     s2c_app_context.forced_cloud_disconnect = ZOS_TRUE;
@@ -520,24 +500,6 @@ static void bring_down_cloud_connection(void)
     {
         zn_rtos_delay_milliseconds(10);
     }
-}
-
-/*************************************************************************************************/
-static zos_result_t check_for_update(char *msg_buffer, zos_bool_t *update_available)
-{
-    zos_result_t result;
-    zos_buffer_t server_msg = {.data = (uint8_t*)msg_buffer, .size = 128 };
-
-    ZOS_LOG("Checking if OTA required ...");
-
-    if(ZOS_FAILED(result, zn_dms_check_for_update(update_available, &server_msg)))
-    {
-        s2c_app_context.forced_cloud_disconnect = ZOS_FALSE;
-        zn_event_issue(s2c_network_state_event_handler, NULL, 0);
-        ZOS_LOG("Failed to check for update: %d", result);
-    }
-
-    return result;
 }
 
 
