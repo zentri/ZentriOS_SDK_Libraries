@@ -48,6 +48,10 @@ ZOS_COMMANDS_START(s2c)
     ZOS_ADD_COMMAND("s2c_connect",      0, 0, ZOS_FALSE, s2c_connect),
     ZOS_ADD_COMMAND("s2c_disconnect",   0, 0, ZOS_FALSE, s2c_disconnect),
     ZOS_ADD_COMMAND("s2c_ota",          0, 1, ZOS_FALSE, s2c_ota),
+#ifdef S2C_HOST_BUILD
+    ZOS_ADD_COMMAND("s2c_bad",          1, 1, ZOS_FALSE, s2c_broadcast_app_data),
+    ZOS_ADD_COMMAND("sleep",            0, 0, ZOS_FALSE, s2c_sleep),
+#endif
 ZOS_COMMANDS_END
 
 ZOS_COMMAND_LISTS(s2c);
@@ -59,7 +63,7 @@ static const char* s2c_app_name;
 
 
 /*************************************************************************************************/
-WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name)
+WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name, const void *default_settings, uint16_t default_settings_len)
 {
     zos_result_t result = ZOS_SUCCESS;
 
@@ -106,7 +110,7 @@ WEAK zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *a
             }
         }
         // no config file is available, just load the default settings
-        else if(ZOS_FAILED(result, zn_load_ro_memory(s2c_app_context.settings, sizeof(s2c_app_settings_t), &s2c_default_app_settings, 0)))
+        else if(ZOS_FAILED(result, zn_load_ro_memory(s2c_app_context.settings, default_settings_len, default_settings, 0)))
         {
             ZOS_LOG("Failed to loaded default settings");
         }
@@ -208,6 +212,7 @@ ZOS_DEFINE_COMMAND(s2c_connect)
 
     s2c_app_context.forced_setup_mode = ZOS_FALSE;
     s2c_app_context.forced_cloud_disconnect = ZOS_FALSE;
+    s2c_app_context.cloud_retry_count = 0;
     zn_event_issue(s2c_network_state_event_handler, NULL, 0);
 
     return CMD_EXECUTE_AOK;
@@ -227,30 +232,7 @@ ZOS_DEFINE_COMMAND(s2c_disconnect)
 ZOS_DEFINE_COMMAND(s2c_ota)
 {
     zos_result_t result;
-    zos_bool_t update_available;
-    char msg_buffer[128] = { 0 };
-
-    bring_down_cloud_connection();
-
-    if(argc == 0)
-    {
-        if(ZOS_FAILED(result, check_for_update(msg_buffer, &update_available)))
-        {
-            return CMD_FAILED;
-        }
-
-        if(update_available)
-        {
-            ZOS_LOG("New firmware available: %s", msg_buffer);
-        }
-        else
-        {
-            ZOS_LOG("Firmware up-to-date");
-            s2c_app_context.forced_cloud_disconnect = ZOS_FALSE;
-            zn_event_issue(s2c_network_state_event_handler, NULL, 0);
-            return CMD_SUCCESS;
-        }
-    }
+    const char *version_str = NULL;
 
     ZOS_LOG("Preparing for OTA ...");
 
@@ -261,27 +243,95 @@ ZOS_DEFINE_COMMAND(s2c_ota)
     // the settings will be loaded after the OTA
     zn_settings_save(s2c_app_name);
 
-    char *version_str = NULL;
 
     if(argc > 0)
     {
         const int len = strlen(argv[0]);
         if(len > 0)
         {
-            version_str = zn_malloc_ptr(len+1);
-            if(version_str != NULL)
-            {
-                strcpy(version_str, argv[0]);
-            }
+           if(strcmp(argv[0], "-f") == 0)
+           {
+               version_str = ZOS_DMS_UPDATE_FORCED;
+           }
+           else
+           {
+               version_str = argv[0];
+           }
         }
     }
 
-    // Note: we wait a moment because this will reboot ZentriOS
-    // we want to ensure that the command response is sent to the mobile app before doing so
-    zn_event_register_timed(ota_event_handler, version_str, 500, 0);
+    ZOS_LOG("Invoking OTA ...");
+    zn_backup_register_write(CONFIG_LOADED_REG, 0);
+    result = zn_dms_update_with_callback(version_str, zn_dms_update_callback);
 
+    // the above API doesn't return if successful,
+    // if we get here then somthing failed
+    zn_cmd_format_response(CMD_FAILED, "Failed to invoke update, err:%d", result);
+
+    // the response is already printed, just return success so nothing else is printed
+    return CMD_SUCCESS;
+}
+
+/*************************************************************************************************/
+static void zn_dms_update_callback(void)
+{
+    zn_cmd_format_response(CMD_SUCCESS, "Updating starting ...");
+}
+
+
+#ifdef S2C_HOST_BUILD
+
+/*************************************************************************************************/
+ZOS_DEFINE_COMMAND(s2c_broadcast_app_data)
+{
+    zos_result_t result = ZOS_SUCCESS;
+
+    ZOS_CMD_PARSE_INT_ARG(uint32_t, data_size, argv[0], 0, 256);
+
+    s2c_set_setting(S2C_SETTING_BROADCAST_CALLBACK, NULL);
+    if(s2c_app_context.broadcast_app_data.buffer != NULL)
+    {
+        free(s2c_app_context.broadcast_app_data.buffer);
+        s2c_app_context.broadcast_app_data.length = 0;
+        s2c_app_context.broadcast_app_data.buffer = NULL;
+    }
+
+    if(data_size > 0)
+    {
+        uint8_t data_buffer[data_size];
+        zos_buffer_t buffer =
+        {
+                .data = data_buffer,
+                .size = data_size
+        };
+
+        if(ZOS_FAILED(result, zn_cmd_read_write_data(data_size, 10000, &buffer, broadcast_app_data_writer)))
+        {
+        }
+        else if(ZOS_FAILED(result, zn_malloc(&s2c_app_context.broadcast_app_data.buffer, data_size)))
+        {
+        }
+        else
+        {
+            memcpy(s2c_app_context.broadcast_app_data.buffer, data_buffer, data_size);
+            s2c_app_context.broadcast_app_data.length = data_size;
+            //zn_dump_buffer(s2c_app_context.broadcast_app_data.buffer, data_size, "AppData", ZOS_DUMP_FLAGS(16, 1, LITTLE, ADD_SPACE, NO_ADDRESSES, PRINT_ASCII));
+            s2c_set_setting(S2C_SETTING_BROADCAST_CALLBACK, user_broadcast_callback);
+        }
+    }
+
+    return (result == ZOS_SUCCESS) ? CMD_EXECUTE_AOK : CMD_FAILED;
+}
+
+/*************************************************************************************************/
+ZOS_DEFINE_COMMAND(s2c_sleep)
+{
+    // add a minor delay before sleeping so the command response is returned
+    zn_event_register_timed(sleep_event_handler, NULL, 500, 0);
     return CMD_EXECUTE_AOK;
 }
+
+#endif
 
 /*************************************************************************************************/
 ZOS_DEFINE_GETTER(device_code)
@@ -439,19 +489,6 @@ static void network_down_event_handler(void *arg)
 }
 
 /*************************************************************************************************/
-static void ota_event_handler(void *arg)
-{
-    const char *version_str = (arg != NULL) ? arg : ZOS_DMS_UPDATE_FORCED;
-
-    zn_backup_register_write(CONFIG_LOADED_REG, 0);
-    zn_dms_update(version_str);
-    if(version_str != NULL)
-    {
-        zn_free((void*)version_str);
-    }
-}
-
-/*************************************************************************************************/
 static void bring_down_cloud_connection(void)
 {
     s2c_app_context.forced_cloud_disconnect = ZOS_TRUE;
@@ -465,25 +502,40 @@ static void bring_down_cloud_connection(void)
     }
 }
 
+
+#ifdef S2C_HOST_BUILD
+
 /*************************************************************************************************/
-static zos_result_t check_for_update(char *msg_buffer, zos_bool_t *update_available)
+static zos_result_t broadcast_app_data_writer(void *user, const void *data, int len)
 {
-    zos_result_t result;
-    zos_buffer_t server_msg = {.data = (uint8_t*)msg_buffer, .size = 128 };
+    zos_buffer_t *buffer = (zos_buffer_t*)user;
 
-    // need to bring down cloud connection first
-    // since only one TLS connection is allowed
-    bring_down_cloud_connection();
+    memcpy(buffer->data, data, len);
+    buffer->data += len;
 
-    ZOS_LOG("Checking if OTA required ...");
-
-    if(ZOS_FAILED(result, zn_dms_check_for_update(update_available, &server_msg)))
-    {
-        s2c_app_context.forced_cloud_disconnect = ZOS_FALSE;
-        zn_event_issue(s2c_network_state_event_handler, NULL, 0);
-        ZOS_LOG("Failed to check for update: %d", result);
-    }
-
-    return result;
+    return ZOS_SUCCESS;
 }
+
+/*************************************************************************************************/
+static uint8_t* user_broadcast_callback(uint8_t *buffer, uint16_t length)
+{
+    if(s2c_app_context.broadcast_app_data.buffer != NULL && length >= s2c_app_context.broadcast_app_data.length)
+    {
+        memcpy(buffer, s2c_app_context.broadcast_app_data.buffer, s2c_app_context.broadcast_app_data.length);
+        return buffer + s2c_app_context.broadcast_app_data.length;
+    }
+    else
+    {
+        return buffer;
+    }
+}
+
+/*************************************************************************************************/
+static void sleep_event_handler(void *arg)
+{
+    bring_down_cloud_connection();
+    zn_powersave_sleep(NULL);
+}
+
+#endif
 

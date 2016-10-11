@@ -11,7 +11,7 @@
 
 
 
-zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name);
+zos_result_t s2c_commands_init(uint32_t setting_magic_number, const char *app_name, const void *default_settings, uint16_t default_settings_len);
 
 void s2c_file_commands_init(void);
 

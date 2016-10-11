@@ -42,8 +42,7 @@ typedef struct
     uint32_t magic_number;
     struct
     {
-        char url[64];
-        char cert[32];
+        char url[48];
         char token[36];
     } cloud;
     struct
@@ -54,7 +53,7 @@ typedef struct
 
     char device_title[S2C_DEVICE_TITLE_SIZE];
     char device_code[S2C_DEVICE_CODE_SIZE];
-    char caps_filename[32];
+    char caps_filename[24];
     s2c_flag_t flags;
 } s2c_app_settings_t;
 #else
@@ -73,13 +72,22 @@ typedef struct
     uint8_t network_retry_count;
     uint8_t cloud_retry_count;
     uint8_t softap_retry_count;
+    char cloud_domain[32];
+    const char *cloud_cert_filename;
+#ifdef S2C_HOST_BUILD
+    struct
+    {
+        uint8_t *buffer;
+        uint16_t length;
+    } broadcast_app_data;
+#endif
 } s2c_app_context_t;
 
 
 
 
 extern s2c_app_context_t s2c_app_context;
-extern RO_MEM s2c_app_settings_t s2c_default_app_settings;
-
 
 zos_result_t s2c_api_init(const s2c_config_t config);
+
+void s2c_api_update_softap_domain_list(void);

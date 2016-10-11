@@ -11,12 +11,14 @@
 
 
 
-/*************************************************************************************************/
-WEAK zos_result_t s2c_cloud_connect(void)
+/*************************************************************************************************
+ * Note: the cert_filename is only needed if the device performs file operations with the cloud/DMS
+ */
+WEAK zos_result_t s2c_cloud_connect(const char* cert_filename)
 {
     zos_result_t result;
 
-    if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, s2c_app_context.settings->cloud.cert)))
+    if(ZOS_FAILED(result, s2c_open_cloud_connection(s2c_app_context.settings->cloud.url, cert_filename)))
     {
         ZOS_LOG("Cloud connection failed: %d", result);
 
@@ -71,7 +73,16 @@ WEAK zos_bool_t s2c_cloud_check_internet_connection(void)
     {
         url = s2c_app_context.settings->cloud.url;
     }
-    return (zn_issue_command_with_callback(zos_command_callback, "nlo %s", url) == ZOS_SUCCESS);
+
+    strcpy(s2c_app_context.cloud_domain, url);
+
+    char *end =  strchr(s2c_app_context.cloud_domain, ':');
+    if(end != NULL)
+    {
+        *end = 0;
+    }
+
+    return (zn_issue_command_with_callback(zos_command_callback, "nlo %s", s2c_app_context.cloud_domain) == ZOS_SUCCESS);
 }
 
 /*************************************************************************************************/

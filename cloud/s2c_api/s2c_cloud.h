@@ -10,7 +10,7 @@
 #pragma once
 
 
-zos_result_t s2c_cloud_connect(void);
+zos_result_t s2c_cloud_connect(const char* cert_filename);
 
 void s2c_cloud_disconnect(void *unused);
 
