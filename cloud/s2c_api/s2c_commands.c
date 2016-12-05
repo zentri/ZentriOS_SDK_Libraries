@@ -294,6 +294,7 @@ ZOS_DEFINE_COMMAND(s2c_broadcast_app_data)
         free(s2c_app_context.broadcast_app_data.buffer);
         s2c_app_context.broadcast_app_data.length = 0;
         s2c_app_context.broadcast_app_data.buffer = NULL;
+        s2c_set_setting(S2C_SETTING_BROADCAST_CALLBACK, NULL);
     }
 
     if(data_size > 0)
@@ -317,6 +318,7 @@ ZOS_DEFINE_COMMAND(s2c_broadcast_app_data)
             s2c_app_context.broadcast_app_data.length = data_size;
             //zn_dump_buffer(s2c_app_context.broadcast_app_data.buffer, data_size, "AppData", ZOS_DUMP_FLAGS(16, 1, LITTLE, ADD_SPACE, NO_ADDRESSES, PRINT_ASCII));
             s2c_set_setting(S2C_SETTING_BROADCAST_CALLBACK, user_broadcast_callback);
+            s2c_trigger_status_broadcast();
         }
     }
 
