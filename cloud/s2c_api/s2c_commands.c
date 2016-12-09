@@ -487,7 +487,14 @@ static void system_reboot_event_handler(void *arg)
 /*************************************************************************************************/
 static void network_down_event_handler(void *arg)
 {
-    zn_network_down(ZOS_WLAN);
+    if(zn_network_is_up(ZOS_WLAN))
+    {
+        zn_network_down(ZOS_WLAN);
+    }
+    else
+    {
+        s2c_network_state_event_handler(NULL);
+    }
 }
 
 /*************************************************************************************************/
