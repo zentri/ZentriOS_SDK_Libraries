@@ -10,6 +10,11 @@
 #include "zos.h"
 
 /**
+ * @addtogroup lib_ble_sensor
+ * @{
+ */
+
+/**
  * @brief Instantiate a BLE sensor descriptor with the given name and UUID
  * @def BLE_SENSOR_DESCRIPTOR( name, descriptor_uuid, write_handler, data_handler
  */
@@ -347,4 +352,8 @@ zos_result_t ble_sensor_enable_notification( ble_sensor_t* sensor, ble_sensor_de
  * @return @ref zos_result_t
  */
 zos_result_t ble_sensor_disable_notification( ble_sensor_t* sensor, ble_sensor_descriptor_t* ccc );
+
+/**
+ * @}
+ *//* /add_to_group lib_ble_sensor */
 
