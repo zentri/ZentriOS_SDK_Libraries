@@ -46,9 +46,9 @@ zos_result_t servo_deinit(zos_gpio_t gpio);
  * This is intended for non-fully rotational servos.
  *
  * The `position` argument has the following meanings:
- * 0 - fully left
- * 50 - middle or 'zero' position
- * 100 - fully right
+ * 0     - fully left
+ * 5000  - middle or 'zero' position
+ * 10000 - fully right
  *
  * @param gpio The GPIO with PWM functionality
  * @param position Position to set servo
@@ -61,9 +61,9 @@ zos_result_t servo_set_position(zos_gpio_t gpio, uint32_t position);
  * This is intended for fully rotational servos.
  *
  * The `speed` argument has the following meanings:
- * 0 - stopped
- * 50 - half rotation speed
- * 100 - full rotation speed
+ * 0     - stopped
+ * 5000  - half rotation speed
+ * 10000 - full rotation speed
  *
  * @param gpio The GPIO with PWM functionality
  * @param speed Rate to spin servo
