@@ -73,10 +73,11 @@ zos_result_t arducam_init(const arducam_config_t *config, arducam_type_t type)
     context->buffer_length = config->max_read_length;
     memcpy(&context->callback, &config->callback, sizeof(arducam_callbacks_t));
 
+
     if(ZOS_FAILED(result, zn_i2c_init(&context->i2c_device)))
     {
     }
-    else if(ZOS_FAILED(result, driver->callback.init(&config->settings)))
+    else if(ZOS_FAILED(result, adrucam_driver_init(&context->spi_device, &context->i2c_device, driver, &config->driver_config)))
     {
     }
 

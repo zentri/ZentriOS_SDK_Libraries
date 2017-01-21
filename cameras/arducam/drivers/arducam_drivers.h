@@ -9,7 +9,14 @@
 
 #pragma once
 
+
 #include "arducam_types.h"
+
+
+
+#define REG_ADDR_ACTION 0x00
+#define REG_ACTION_TERMINATE 0xFF
+
 
 
 typedef struct
@@ -28,7 +35,7 @@ typedef struct
     } i2c;
     struct
     {
-        zos_result_t (*init)(const arducam_settings_t *config);
+        zos_result_t (*init)(const arducam_driver_config_t *config);
         zos_result_t (*start_capture)(void);
         zos_result_t (*stop_capture)(void);
         zos_result_t (*is_capture_ready)(uint32_t *image_size_ptr);
@@ -40,4 +47,23 @@ typedef struct
 } adrucam_driver_t;
 
 
+#pragma pack(1)
+typedef struct
+{
+    const uint8_t address;
+    const uint8_t value;
+} reg_addr_value_t;
+#pragma pack()
+
+
 zos_result_t adrucam_get_driver(arducam_type_t type, const adrucam_driver_t **driver_ptr);
+
+zos_result_t adrucam_driver_init(zos_spi_device_t *spi, zos_i2c_device_t *i2c, adrucam_driver_t *driver, const arducam_driver_config_t *config);
+
+uint8_t adrucam_driver_i2c_write_reg(uint16_t addr, uint8_t data);
+
+uint8_t adrucam_driver_i2c_read_reg(uint16_t addr, uint8_t *val);
+
+zos_result_t adrucam_driver_i2c_write_regs(const reg_addr_value_t *regs, const reg_addr_value_t *action_list, uint8_t action_list_len);
+
+zos_result_t adrucam_driver_i2c_write_reg_list(const uint8_t *list, uint16_t length);
