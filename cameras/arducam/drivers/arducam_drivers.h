@@ -38,8 +38,9 @@ typedef struct
         zos_result_t (*init)(const arducam_driver_config_t *config);
         zos_result_t (*start_capture)(void);
         zos_result_t (*stop_capture)(void);
+        zos_result_t (*reset)(void);
         zos_result_t (*is_capture_ready)(uint32_t *image_size_ptr);
-        zos_result_t (*read_data)(void *data, uint16_t length);
+        zos_result_t (*read_data)(void *data, uint16_t length, uint16_t *remaining_ptr);
         zos_result_t (*set_setting)(arducam_setting_type_t setting, uint32_t value);
         zos_result_t (*get_setting)(arducam_setting_type_t setting, uint32_t *value_ptr);
     } callback;

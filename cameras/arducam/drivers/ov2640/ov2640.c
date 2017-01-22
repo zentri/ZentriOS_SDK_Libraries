@@ -56,6 +56,7 @@ const adrucam_driver_t* ov2640_get_driver(void)
                     OV2640_ADD_CALLBACK(start_capture),
                     OV2640_ADD_CALLBACK(stop_capture),
                     OV2640_ADD_CALLBACK(is_capture_ready),
+                    OV2640_ADD_CALLBACK(reset),
                     OV2640_ADD_CALLBACK(read_data),
                     OV2640_ADD_CALLBACK(set_setting),
                     OV2640_ADD_CALLBACK(get_setting)
@@ -72,20 +73,17 @@ static zos_result_t ov2640_init(const arducam_driver_config_t *config)
 {
     zos_result_t result;
 
+    memset(ov2640_settings, 0, sizeof(ov2640_settings));
+
+    ov2640_settings[ARDUCAM_SETTING_QUALITY] = config->jpeg_quality;
+    ov2640_settings[ARDUCAM_SETTING_FORMAT] = config->format;
+    ov2640_settings[ARDUCAM_SETTING_RESOLUTION] = config->resolution;
+    ov2640_settings[ARDUCAM_SETTING_GAINCEILING] = COM9_DEFAULT;
+
     if(ZOS_FAILED(result, ov2640_validate_id()))
     {
     }
     else if(ZOS_FAILED(result, ov2640_reset()))
-    {
-    }
-//    else if(ZOS_FAILED(result, ov2640_set_setting(ARDUCAM_SETTING_FORMAT, config->format)))
-//    {
-//    }
-    else if(ZOS_FAILED(result, ov2640_set_setting(ARDUCAM_SETTING_RESOLUTION, config->resolution)))
-    {
-    }
-    else if((config->format == ARDUCAM_FORMAT_JPEG) &&
-            ZOS_FAILED(result, ov2640_set_setting(ARDUCAM_SETTING_QUALITY, config->jpeg_quality)))
     {
     }
 
@@ -111,12 +109,7 @@ static zos_result_t ov2640_validate_id(void)
 /*************************************************************************************************/
 static zos_result_t ov2640_reset(void)
 {
-    memset(ov2640_settings, 0, sizeof(ov2640_settings));
 
-    ov2640_settings[ARDUCAM_SETTING_QUALITY] = QS_DEFAULT;
-    ov2640_settings[ARDUCAM_SETTING_FORMAT] = ARDUCAM_FORMAT_JPEG;
-    ov2640_settings[ARDUCAM_SETTING_RESOLUTION] = ARDUCAM_RES_320x240;
-    ov2640_settings[ARDUCAM_SETTING_GAINCEILING] = COM9_DEFAULT;
 
     // put the sensor into reset
     OV2640_WRITE_VERIFY(BANK_SEL, BANK_SEL_SENSOR);
@@ -129,7 +122,11 @@ static zos_result_t ov2640_reset(void)
 
     OV2640_WRITE_VERIFY(BANK_SEL, BANK_SEL_SENSOR);
     OV2640_WRITE_VERIFY(0x15, 0x00);
-    //ZOS_VERIFY(adrucam_driver_i2c_write_regs(ov2640_320x240_jpeg, NULL, 0));
+    ov2640_set_setting(ARDUCAM_SETTING_FORMAT, ov2640_settings[ARDUCAM_SETTING_FORMAT]);
+    ov2640_set_setting(ARDUCAM_SETTING_RESOLUTION, ov2640_settings[ARDUCAM_SETTING_RESOLUTION]);
+    ov2640_set_setting(ARDUCAM_SETTING_QUALITY, ov2640_settings[ARDUCAM_SETTING_QUALITY]);
+
+    return ZOS_SUCCESS;
 }
 
 /*************************************************************************************************/
