@@ -17,7 +17,7 @@
 
 typedef struct
 {
-    const adrucam_driver_t *driver;
+    const arducam_driver_t *driver;
     zos_spi_device_t spi_device;
     zos_i2c_device_t i2c_device;
     uint16_t buffer_length;
@@ -44,11 +44,11 @@ static arducam_context_t *context;
 zos_result_t arducam_init(const arducam_config_t *config, arducam_type_t type)
 {
     zos_result_t result;
-    const adrucam_driver_t *driver;
+    const arducam_driver_t *driver;
 
     arducam_deinit();
 
-    if(ZOS_FAILED(result, adrucam_get_driver(type, &driver)))
+    if(ZOS_FAILED(result, arducam_get_driver(type, &driver)))
     {
         return result;
     }
@@ -60,24 +60,11 @@ zos_result_t arducam_init(const arducam_config_t *config, arducam_type_t type)
     }
 
     context->driver = driver;
-    context->spi_device.port = config->spi.port;
-    context->spi_device.chip_select = config->spi.cs;
-    context->spi_device.flags = driver->spi.flags;
-    context->spi_device.speed = driver->spi.rate;
-    context->i2c_device.port = config->i2c_port;
-    context->i2c_device.address = driver->i2c.address;
-    context->i2c_device.read_timeout = driver->i2c.read_timeout;
-    context->i2c_device.retries = driver->i2c.retries;
-    context->i2c_device.speed = driver->i2c.rate;
     context->buffer = (uint8_t*)&context[1];
     context->buffer_length = config->max_read_length;
     memcpy(&context->callback, &config->callback, sizeof(arducam_callbacks_t));
 
-
-    if(ZOS_FAILED(result, zn_i2c_init(&context->i2c_device)))
-    {
-    }
-    else if(ZOS_FAILED(result, adrucam_driver_init(&context->spi_device, &context->i2c_device, driver, &config->driver_config)))
+    if(ZOS_FAILED(result, arducam_driver_init(&context->spi_device, &context->i2c_device, driver, config)))
     {
     }
 
@@ -103,7 +90,7 @@ zos_result_t arducam_deinit(void)
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_start_capture(void)
+zos_result_t arducam_start_capture(void)
 {
     zos_result_t result;
 
@@ -127,13 +114,13 @@ zos_result_t adrucam_start_capture(void)
 }
 
 /*************************************************************************************************/
-zos_bool_t adrucam_is_image_ready(void)
+zos_bool_t arducam_is_image_ready(void)
 {
     return context->flag.is_image_ready;
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_start_reading_image(void)
+zos_result_t arducam_start_reading_image(void)
 {
     if(!context->flag.is_image_ready)
     {
@@ -146,20 +133,20 @@ zos_result_t adrucam_start_reading_image(void)
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_abort_capture(void)
+zos_result_t arducam_abort_capture(void)
 {
     reset_capture_context();
     return context->driver->callback.stop_capture();
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_set_setting(arducam_setting_type_t setting, uint32_t value)
+zos_result_t arducam_set_setting(arducam_setting_type_t setting, uint32_t value)
 {
     return context->driver->callback.set_setting(setting, value);
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_get_setting(arducam_setting_type_t setting, uint32_t *value_ptr)
+zos_result_t arducam_get_setting(arducam_setting_type_t setting, uint32_t *value_ptr)
 {
     return context->driver->callback.get_setting(setting, value_ptr);
 }
@@ -174,7 +161,7 @@ static void poll_image_status_handler(void *arg)
     {
         if(result != ZOS_PENDING)
         {
-            adrucam_stop_capture();
+            arducam_abort_capture();
 
             context->callback.error_handler(result);
         }
@@ -184,7 +171,7 @@ static void poll_image_status_handler(void *arg)
         context->flag.is_image_ready = ZOS_TRUE;
         if(context->callback.image_ready(context->image_data_remaining))
         {
-            adrucam_start_reading_image();
+            arducam_start_reading_image();
         }
     }
 }
@@ -203,6 +190,7 @@ static void read_image_data_handler(void *arg)
     else
     {
         context->image_data_remaining -= chunk_size;
+        context->flag.is_capturing = (context->image_data_remaining > 0);
         result = context->callback.data_writer(context->buffer, chunk_size, (context->image_data_remaining == 0));
         if((result != ZOS_SUCCESS) || (context->image_data_remaining == 0))
         {

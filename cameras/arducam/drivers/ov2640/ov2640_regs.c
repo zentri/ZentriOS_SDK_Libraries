@@ -9,7 +9,7 @@
 
 
 #include "ov2640.h"
-#include "arducam_drivers.h"
+#include "../arducam_drivers.h"
 
 
 
@@ -241,7 +241,7 @@ static const uint8_t ov2640_saturation_regs[ARDUCAM_SATURATION_LEVELS + 1][5] =
     { 0x00, 0x02, 0x03, 0x58, 0x58 }, /* +2 */
 };
 
-static const uint8_t ov2640_jpeg_regs[][2] =
+static const reg_addr_value_t ov2640_jpeg_regs[] =
 {
         { 0xe0, 0x14 },
         { 0xe1, 0x77 },
@@ -269,7 +269,7 @@ static const reg_addr_value_t ov2640_yuv422_regs[] =
 };
 
 /* JPG 160x120 */
-static const struct reg_addr_value_t ov2640_160x120_jpeg[] =
+static const reg_addr_value_t ov2640_160x120_jpeg[] =
 {
   { 0xff, 0x01 },
   { 0x12, 0x40 },
@@ -315,7 +315,7 @@ static const struct reg_addr_value_t ov2640_160x120_jpeg[] =
 
 /* JPG, 0x176x144 */
 
-static const struct reg_addr_value_t ov2640_176x144_jpeg[] =
+static const reg_addr_value_t ov2640_176x144_jpeg[] =
 {
   { 0xff, 0x01 },
   { 0x12, 0x40 },
@@ -361,7 +361,7 @@ static const struct reg_addr_value_t ov2640_176x144_jpeg[] =
 
 /* JPG 320x240 */
 
-static const struct reg_addr_value_t ov2640_320x240_jpeg[] =
+static const reg_addr_value_t ov2640_320x240_jpeg[] =
 {
   { 0xff, 0x01 },
   { 0x12, 0x40 },
@@ -407,7 +407,7 @@ static const struct reg_addr_value_t ov2640_320x240_jpeg[] =
 
 /* JPG 352x288 */
 
-static const struct reg_addr_value_t ov2640_352x288_jpeg[] =
+static const reg_addr_value_t ov2640_352x288_jpeg[] =
 
 {
   { 0xff, 0x01 },
@@ -453,7 +453,7 @@ static const struct reg_addr_value_t ov2640_352x288_jpeg[] =
 };
 
 /* JPG 640x480 */
-static const struct reg_addr_value_t ov2640_640x480_jpeg[] =
+static const reg_addr_value_t ov2640_640x480_jpeg[] =
 {
     {0xff, 0x01},
     {0x11, 0x01},
@@ -501,7 +501,7 @@ static const struct reg_addr_value_t ov2640_640x480_jpeg[] =
 };
 
 /* JPG 800x600 */
-static const struct reg_addr_value_t ov2640_800x600_jpeg[] =
+static const reg_addr_value_t ov2640_800x600_jpeg[] =
 {
     {0xff, 0x01},
     {0x11, 0x01},
@@ -549,7 +549,7 @@ static const struct reg_addr_value_t ov2640_800x600_jpeg[] =
 };
 
 /* JPG 1024x768 */
-static const struct reg_addr_value_t ov2640_1024x768_jpeg[] =
+static const reg_addr_value_t ov2640_1024x768_jpeg[] =
 {
     {0xff, 0x01},
     {0x11, 0x01},
@@ -595,7 +595,7 @@ static const struct reg_addr_value_t ov2640_1024x768_jpeg[] =
 };
 
    /* JPG 1280x1024 */
-static const struct reg_addr_value_t ov2640_1280x1024_jpeg[] =
+static const reg_addr_value_t ov2640_1280x1024_jpeg[] =
 {
     {0xff, 0x01},
     {0x11, 0x01},
@@ -643,7 +643,7 @@ static const struct reg_addr_value_t ov2640_1280x1024_jpeg[] =
 };
 
    /* JPG 1600x1200 */
-static const struct reg_addr_value_t ov2640_1600x1200_jpeg[] =
+static const reg_addr_value_t ov2640_1600x1200_jpeg[] =
 {
     {0xff, 0x01},
     {0x11, 0x01},

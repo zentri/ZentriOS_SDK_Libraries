@@ -9,9 +9,11 @@
 
 
 #include "arducam_drivers.h"
+#include "arduchip.h"
 
 
-extern const adrucam_driver_t* ov2640_get_driver(void);
+
+extern const arducam_driver_t* ov2640_get_driver(void);
 
 
 
@@ -21,11 +23,11 @@ static zos_i2c_device_t *i2c_device;
 
 
 /*************************************************************************************************/
-zos_result_t adrucam_get_driver(arducam_type_t type, const adrucam_driver_t **driver_ptr)
+zos_result_t arducam_get_driver(arducam_type_t type, const arducam_driver_t **driver_ptr)
 {
     switch(type)
     {
-#ifdef ARDUCAM_OV2640_ENABLED
+#ifdef DRIVER_CAMERA_OV2640
     case ARDUCAM_TYPE_OV2640:
         *driver_ptr = ov2640_get_driver();
         break;
@@ -38,28 +40,50 @@ zos_result_t adrucam_get_driver(arducam_type_t type, const adrucam_driver_t **dr
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_driver_init(zos_spi_device_t *spi, zos_i2c_device_t *i2c, adrucam_driver_t *driver, const arducam_driver_config_t *config)
+zos_result_t arducam_driver_init(zos_spi_device_t *spi, zos_i2c_device_t *i2c, const arducam_driver_t *driver, const arducam_config_t *config)
 {
+    zos_result_t result;
+
     spi_device = spi;
     i2c_device = i2c;
 
-    return driver->callback.init(config);
+    spi_device->port = config->spi.port;
+    spi_device->chip_select = config->spi.cs;
+    spi_device->flags = driver->spi.flags;
+    spi_device->speed = driver->spi.rate;
+    i2c_device->port = config->i2c_port;
+    i2c_device->address = driver->i2c.address;
+    i2c_device->read_timeout = driver->i2c.read_timeout;
+    i2c_device->retries = driver->i2c.retries;
+    i2c_device->speed = driver->i2c.rate;
+
+    if(ZOS_FAILED(result, zn_i2c_init(i2c_device)))
+    {
+        return result;
+    }
+
+    zn_gpio_deinit(spi_device->chip_select);
+    zn_gpio_init(spi_device->chip_select, GPIO_OUTPUT_PUSHPULL, ZOS_TRUE);
+
+    zn_rtos_delay_milliseconds(100);
+
+    return driver->callback.init(&config->driver_config);
 }
 
 /*************************************************************************************************/
-uint8_t adrucam_driver_i2c_write_reg(uint16_t addr, uint8_t data)
+uint8_t arducam_driver_i2c_write_reg(uint8_t addr, uint8_t data)
 {
     return (zn_i2c_master_write_reg8(i2c_device, addr, data) == ZOS_SUCCESS) ? 0 : 0xFF;
 }
 
 /*************************************************************************************************/
-uint8_t adrucam_driver_i2c_read_reg(uint16_t addr, uint8_t *val)
+uint8_t arducam_driver_i2c_read_reg(uint8_t addr, uint8_t *val)
 {
     return (zn_i2c_master_read_reg8(i2c_device, addr, val) == ZOS_SUCCESS) ? *val : 0xFF;
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_driver_i2c_write_regs(const reg_addr_value_t *regs, const reg_addr_value_t *action_list, uint8_t action_list_len)
+zos_result_t arducam_driver_i2c_write_regs(const reg_addr_value_t *regs, const reg_addr_value_t *action_list, uint8_t action_list_len)
 {
     for(const reg_addr_value_t *addr_value = regs;; ++addr_value)
     {
@@ -79,13 +103,13 @@ zos_result_t adrucam_driver_i2c_write_regs(const reg_addr_value_t *regs, const r
             }
             else
             {
-                reg_addr_value_t *action = &action_list[addr_value->value];
-                ZOS_VERIFY(adrucam_driver_i2c_write_reg(action->address, action->value));
+                const reg_addr_value_t *action = &action_list[addr_value->value];
+                ZOS_VERIFY(arducam_driver_i2c_write_reg(action->address, action->value));
             }
         }
         else
         {
-            ZOS_VERIFY(adrucam_driver_i2c_write_reg(addr_value->address, addr_value->value));
+            ZOS_VERIFY(arducam_driver_i2c_write_reg(addr_value->address, addr_value->value));
         }
     }
 
@@ -93,11 +117,114 @@ zos_result_t adrucam_driver_i2c_write_regs(const reg_addr_value_t *regs, const r
 }
 
 /*************************************************************************************************/
-zos_result_t adrucam_driver_i2c_write_reg_list(const uint8_t *list, uint16_t length)
+zos_result_t arducam_driver_spi_write_reg(uint8_t addr, uint8_t data)
 {
-    for(; length > 0; --length, ++list)
+    uint8_t read_back_value;
+
+    addr |= ARDUCHIP_RW_FLAG;
+
+    const zos_spi_message_t messages[2] =
     {
-        ZOS_VERIFY(adrucam_driver_i2c_write_reg(*list));
+            { .tx_buffer = &addr, .length = 1 },
+            { .tx_buffer = &data, .length = 1 },
+    };
+
+    ZOS_VERIFY(zn_spi_transfer(spi_device, messages, 2));
+
+    zn_rtos_delay_milliseconds(100);
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &read_back_value));
+
+    if(read_back_value != data)
+    {
+        ZOS_LOG("SPI write reg failed: reg: 0x%02X: 0x%02X != 0x%02X", addr & ~ARDUCHIP_RW_FLAG, data, read_back_value);
+        //return ZOS_WRITE_ERROR;
     }
+
     return ZOS_SUCCESS;
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_spi_read_reg(uint8_t addr, uint8_t *data_ptr)
+{
+    zos_result_t result;
+
+    addr &= ~ARDUCHIP_RW_FLAG;
+
+    const zos_spi_message_t messages[2] =
+    {
+            { .tx_buffer = &addr, .length = 1 },
+            { .rx_buffer = data_ptr, .length = 1 },
+    };
+
+    if(!ZOS_FAILED(result, zn_spi_transfer(spi_device, messages, 2)))
+    {
+        ZOS_LOG("SPI read reg: 0x%02X = 0x%02X", addr, *data_ptr);
+    }
+
+    return result;
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_spi_clear_bit(uint8_t addr, uint8_t bits)
+{
+    uint8_t reg_value, read_back_value;
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &reg_value));
+
+    reg_value &= ~bits;
+
+    ZOS_VERIFY(arducam_driver_spi_write_reg(addr, reg_value));
+
+    zn_rtos_delay_milliseconds(100);
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &read_back_value));
+
+    if(read_back_value != reg_value)
+    {
+        ZOS_LOG("SPI clear reg failed: reg: 0x%02X: 0x%02X != 0x%02X", addr, reg_value, read_back_value);
+        //return ZOS_WRITE_ERROR;
+    }
+
+    return ZOS_SUCCESS;
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_spi_set_bit(uint8_t addr, uint8_t bits)
+{
+    uint8_t reg_value, read_back_value;
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &reg_value));
+
+    reg_value |= bits;
+
+    ZOS_VERIFY(arducam_driver_spi_write_reg(addr, reg_value));
+
+    zn_rtos_delay_milliseconds(100);
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &read_back_value));
+
+    if(read_back_value != reg_value)
+    {
+        ZOS_LOG("SPI set  reg failed: reg: 0x%02X: 0x%02X != 0x%02X", addr, reg_value, read_back_value);
+        //return ZOS_WRITE_ERROR;
+    }
+
+    return ZOS_SUCCESS;
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_spi_burst_read(uint8_t *buffer, uint16_t length)
+{
+    const uint8_t burst_read_command = BURST_FIFO_READ;
+    const uint8_t dummy_byte = 0;
+
+    const zos_spi_message_t messages[3] =
+    {
+            { .tx_buffer = &burst_read_command, .length = 1 },
+            { .tx_buffer = &dummy_byte, .length = 1 },
+            { .rx_buffer = buffer, .length = length },
+    };
+
+    return zn_spi_transfer(spi_device, messages, 3);
 }

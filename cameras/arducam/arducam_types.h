@@ -73,9 +73,7 @@ typedef enum
 
 typedef enum
 {
-#ifdef ARDUCAM_OV2640_ENABLED
     ARDUCAM_TYPE_OV2640,
-#endif
     ARDUCAM_TYPE_MAX
 } arducam_type_t;
 
@@ -104,7 +102,7 @@ typedef enum
 
 
 typedef zos_result_t (*arducam_data_writer_t)(const void *image_chunk, uint32_t length, zos_bool_t last_chunk);
-typedef zos_result_t (*arducam_error_handler_t)(zos_result_t result);
+typedef void (*arducam_error_handler_t)(zos_result_t result);
 typedef zos_bool_t (*arducam_image_ready_handler_t)(uint32_t image_size);
 
 
