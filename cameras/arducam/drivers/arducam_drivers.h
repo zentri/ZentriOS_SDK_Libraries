@@ -75,6 +75,10 @@ zos_result_t arducam_driver_spi_set_bit(uint8_t addr, uint8_t bits);
 
 zos_result_t arducam_driver_spi_read_reg(uint8_t addr, uint8_t *data_ptr);
 
+zos_result_t arducam_driver_spi_burst_read_start(void);
+
+zos_result_t arducam_driver_spi_burst_read_stop(void);
+
 zos_result_t arducam_driver_spi_burst_read(uint8_t *buffer, uint16_t length);
 
 

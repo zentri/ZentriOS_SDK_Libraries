@@ -119,8 +119,6 @@ zos_result_t arducam_driver_i2c_write_regs(const reg_addr_value_t *regs, const r
 /*************************************************************************************************/
 zos_result_t arducam_driver_spi_write_reg(uint8_t addr, uint8_t data)
 {
-    uint8_t read_back_value;
-
     addr |= ARDUCHIP_RW_FLAG;
 
     const zos_spi_message_t messages[2] =
@@ -130,16 +128,6 @@ zos_result_t arducam_driver_spi_write_reg(uint8_t addr, uint8_t data)
     };
 
     ZOS_VERIFY(zn_spi_transfer(spi_device, messages, 2));
-
-    zn_rtos_delay_milliseconds(100);
-
-    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &read_back_value));
-
-    if(read_back_value != data)
-    {
-        ZOS_LOG("SPI write reg failed: reg: 0x%02X: 0x%02X != 0x%02X", addr & ~ARDUCHIP_RW_FLAG, data, read_back_value);
-        //return ZOS_WRITE_ERROR;
-    }
 
     return ZOS_SUCCESS;
 }
@@ -159,7 +147,7 @@ zos_result_t arducam_driver_spi_read_reg(uint8_t addr, uint8_t *data_ptr)
 
     if(!ZOS_FAILED(result, zn_spi_transfer(spi_device, messages, 2)))
     {
-        ZOS_LOG("SPI read reg: 0x%02X = 0x%02X", addr, *data_ptr);
+        //ZOS_LOG("SPI read reg: 0x%02X = 0x%02X", addr, *data_ptr);
     }
 
     return result;
@@ -168,7 +156,7 @@ zos_result_t arducam_driver_spi_read_reg(uint8_t addr, uint8_t *data_ptr)
 /*************************************************************************************************/
 zos_result_t arducam_driver_spi_clear_bit(uint8_t addr, uint8_t bits)
 {
-    uint8_t reg_value, read_back_value;
+    uint8_t reg_value;
 
     ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &reg_value));
 
@@ -176,23 +164,13 @@ zos_result_t arducam_driver_spi_clear_bit(uint8_t addr, uint8_t bits)
 
     ZOS_VERIFY(arducam_driver_spi_write_reg(addr, reg_value));
 
-    zn_rtos_delay_milliseconds(100);
-
-    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &read_back_value));
-
-    if(read_back_value != reg_value)
-    {
-        ZOS_LOG("SPI clear reg failed: reg: 0x%02X: 0x%02X != 0x%02X", addr, reg_value, read_back_value);
-        //return ZOS_WRITE_ERROR;
-    }
-
     return ZOS_SUCCESS;
 }
 
 /*************************************************************************************************/
 zos_result_t arducam_driver_spi_set_bit(uint8_t addr, uint8_t bits)
 {
-    uint8_t reg_value, read_back_value;
+    uint8_t reg_value;
 
     ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &reg_value));
 
@@ -200,31 +178,44 @@ zos_result_t arducam_driver_spi_set_bit(uint8_t addr, uint8_t bits)
 
     ZOS_VERIFY(arducam_driver_spi_write_reg(addr, reg_value));
 
-    zn_rtos_delay_milliseconds(100);
-
-    ZOS_VERIFY(arducam_driver_spi_read_reg(addr, &read_back_value));
-
-    if(read_back_value != reg_value)
-    {
-        ZOS_LOG("SPI set  reg failed: reg: 0x%02X: 0x%02X != 0x%02X", addr, reg_value, read_back_value);
-        //return ZOS_WRITE_ERROR;
-    }
 
     return ZOS_SUCCESS;
 }
 
 /*************************************************************************************************/
-zos_result_t arducam_driver_spi_burst_read(uint8_t *buffer, uint16_t length)
+zos_result_t arducam_driver_spi_burst_read_start(void)
 {
+    zos_result_t result;
     const uint8_t burst_read_command = BURST_FIFO_READ;
     const uint8_t dummy_byte = 0;
 
-    const zos_spi_message_t messages[3] =
+    spi_device->flags |= SPI_FLAG_KEEP_ASSERTED;
+
+    const zos_spi_message_t messages[2] =
     {
             { .tx_buffer = &burst_read_command, .length = 1 },
             { .tx_buffer = &dummy_byte, .length = 1 },
-            { .rx_buffer = buffer, .length = length },
     };
 
-    return zn_spi_transfer(spi_device, messages, 3);
+    return zn_spi_transfer(spi_device, messages, 2);
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_spi_burst_read(uint8_t *buffer, uint16_t length)
+{
+    const zos_spi_message_t messages[1] =
+    {
+            { .rx_buffer = buffer, .length = length }
+    };
+
+    return zn_spi_transfer(spi_device, messages, 1);
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_spi_burst_read_stop(void)
+{
+    spi_device->flags &= ~SPI_FLAG_KEEP_ASSERTED;
+    zn_spi_master_deassert(spi_device);
+
+    return ZOS_SUCCESS;
 }

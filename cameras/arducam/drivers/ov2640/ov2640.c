@@ -17,7 +17,7 @@
 #define MAX_FIFO_SIZE       0x5FFFF         //384KByte
 
 
-#define OV2640_SPI_RATE (1*1000*1000)
+#define OV2640_SPI_RATE (8*1000*1000)
 #define OV2640_SPI_FLAGS (SPI_FLAG_CLOCK_IDLE_LOW|SPI_FLAG_MSB_FIRST|SPI_FLAG_CLOCK_RISING_EDGE)
 
 #define OV2640_I2C_CLOCK I2C_CLOCK_STANDARD_SPEED
@@ -112,22 +112,15 @@ static zos_result_t ov2640_validate(void)
     arducam_driver_spi_read_reg(ARDUCHIP_REG_REV, &reg_value);
     ZOS_LOG("ARDUCHIP_REG_REV: 0x%02X", reg_value);
 
-    // writing the register is always verified with a read back
-    // if the read-back fails so will this call
-    if(ZOS_FAILED(result, arducam_driver_spi_write_reg(ARDUCHIP_REG_TEST1, SPI_TEST_VALUE)))
-    {
-    }
+    reg_value = 0;
+    arducam_driver_spi_write_reg(ARDUCHIP_REG_TEST1, SPI_TEST_VALUE);
+    arducam_driver_spi_read_reg(ARDUCHIP_REG_TEST1, &reg_value);
 
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_MODE, &reg_value);
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_TIM, &reg_value);
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_FIFO, &reg_value);
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_GPIO_DIR, &reg_value);
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_GPIO_READ, &reg_value);
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_GPIO_WRITE, &reg_value);
-    arducam_driver_spi_read_reg(ARDUCHIP_REG_STATUS, &reg_value);
-    arducam_driver_spi_read_reg(FIFO_SIZE1, &reg_value);
-    arducam_driver_spi_read_reg(FIFO_SIZE2, &reg_value);
-    arducam_driver_spi_read_reg(FIFO_SIZE3, &reg_value);
+    if(reg_value != SPI_TEST_VALUE)
+    {
+        ZOS_LOG("Failed to write SPI test register");
+        return ZOS_UNINITIALIZED;
+    }
 
     return ZOS_SUCCESS;
 }

@@ -122,14 +122,24 @@ zos_bool_t arducam_is_image_ready(void)
 /*************************************************************************************************/
 zos_result_t arducam_start_reading_image(void)
 {
+    zos_result_t result;
+
     if(!context->flag.is_image_ready)
     {
-        return ZOS_NO_DATA;
+        result = ZOS_NO_DATA;
+    }
+    else if(ZOS_FAILED(result, arducam_driver_spi_burst_read_start()))
+    {
+        arducam_abort_capture();
+
+        context->callback.error_handler(result);
+    }
+    else
+    {
+        zn_event_issue(read_image_data_handler, NULL, 0);
     }
 
-    zn_event_issue(read_image_data_handler, NULL, 0);
-
-    return ZOS_SUCCESS;
+    return result;
 }
 
 /*************************************************************************************************/
@@ -159,7 +169,11 @@ static void poll_image_status_handler(void *arg)
 
     if(ZOS_FAILED(result, context->driver->callback.is_capture_ready(&context->image_data_remaining)))
     {
-        if(result != ZOS_PENDING)
+        if(result == ZOS_PENDING)
+        {
+            zn_event_register_timed(poll_image_status_handler, NULL, IMAGE_READY_POLL_PERIOD, 0);
+        }
+        else
         {
             arducam_abort_capture();
 
@@ -190,7 +204,6 @@ static void read_image_data_handler(void *arg)
     else
     {
         context->image_data_remaining -= chunk_size;
-        context->flag.is_capturing = (context->image_data_remaining > 0);
         result = context->callback.data_writer(context->buffer, chunk_size, (context->image_data_remaining == 0));
         if((result != ZOS_SUCCESS) || (context->image_data_remaining == 0))
         {
@@ -206,6 +219,7 @@ static void read_image_data_handler(void *arg)
 /*************************************************************************************************/
 static void reset_capture_context(void)
 {
+    arducam_driver_spi_burst_read_stop();
     zn_event_unregister(poll_image_status_handler, NULL);
     zn_event_unregister(read_image_data_handler, NULL);
     context->flag.is_capturing = ZOS_FALSE;
