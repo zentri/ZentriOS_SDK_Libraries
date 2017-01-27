@@ -92,7 +92,6 @@ static zos_result_t ov2640_init(const arducam_driver_config_t *config)
 static zos_result_t ov2640_validate(void)
 {
 #define SPI_TEST_VALUE 0xBA
-    zos_result_t result;
     uint8_t reg_value;
     ov2640_id_t id;
 
@@ -171,23 +170,7 @@ static zos_result_t ov2640_is_capture_ready(uint32_t *image_size_ptr)
 
     if(status & CAP_DONE_MASK)
     {
-        uint32_t size;
-        uint8_t size_part;
-
-        ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE3, &size_part));
-        size = size_part;
-        size <<= 8;
-
-        ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE2, &size_part));
-        size |= (uint32_t)size_part;
-        size <<= 8;
-
-        ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE1, &size_part));
-        size |= (uint32_t)size_part;
-
-        *image_size_ptr = size;
-
-        return ZOS_SUCCESS;
+        return arducam_driver_get_fifo_size(image_size_ptr);
     }
     else
     {

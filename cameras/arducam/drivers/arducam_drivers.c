@@ -185,7 +185,6 @@ zos_result_t arducam_driver_spi_set_bit(uint8_t addr, uint8_t bits)
 /*************************************************************************************************/
 zos_result_t arducam_driver_spi_burst_read_start(void)
 {
-    zos_result_t result;
     const uint8_t burst_read_command = BURST_FIFO_READ;
     const uint8_t dummy_byte = 0;
 
@@ -216,6 +215,30 @@ zos_result_t arducam_driver_spi_burst_read_stop(void)
 {
     spi_device->flags &= ~SPI_FLAG_KEEP_ASSERTED;
     zn_spi_master_deassert(spi_device);
+
+    return ZOS_SUCCESS;
+}
+
+/*************************************************************************************************/
+zos_result_t arducam_driver_get_fifo_size(uint32_t *size_ptr)
+{
+    uint32_t size;
+    uint8_t size_part;
+
+    *size_ptr = 0;
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE3, &size_part));
+    size = size_part;
+    size <<= 8;
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE2, &size_part));
+    size |= (uint32_t)size_part;
+    size <<= 8;
+
+    ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE1, &size_part));
+    size |= (uint32_t)size_part;
+
+    *size_ptr = size;
 
     return ZOS_SUCCESS;
 }

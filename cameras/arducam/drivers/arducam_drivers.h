@@ -81,4 +81,6 @@ zos_result_t arducam_driver_spi_burst_read_stop(void);
 
 zos_result_t arducam_driver_spi_burst_read(uint8_t *buffer, uint16_t length);
 
+zos_result_t arducam_driver_get_fifo_size(uint32_t *size_ptr);
+
 
