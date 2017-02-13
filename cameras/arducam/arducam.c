@@ -21,7 +21,9 @@ typedef struct
     zos_spi_device_t spi_device;
     zos_i2c_device_t i2c_device;
     uint16_t buffer_length;
-    uint8_t *buffer;
+    uint8_t *buffer1;
+    uint8_t *buffer2;
+    uint8_t *current_buffer;
     arducam_error_handler_t error_handler;
 
     arducam_callbacks_t callback;
@@ -53,14 +55,15 @@ zos_result_t arducam_init(const arducam_config_t *config, arducam_type_t type)
         return result;
     }
 
-    context = zn_malloc_ptr(sizeof(arducam_context_t) + config->max_read_length);
+    context = zn_malloc_ptr(sizeof(arducam_context_t) + config->max_read_length*2);
     if(context == NULL)
     {
         return ZOS_NO_MEM;
     }
 
     context->driver = driver;
-    context->buffer = (uint8_t*)&context[1];
+    context->buffer1 = (uint8_t*)&context[1];
+    context->buffer2 = context->buffer1 + config->max_read_length;
     context->buffer_length = config->max_read_length;
     memcpy(&context->callback, &config->callback, sizeof(arducam_callbacks_t));
 
@@ -150,13 +153,13 @@ zos_result_t arducam_abort_capture(void)
 }
 
 /*************************************************************************************************/
-zos_result_t arducam_set_setting(arducam_setting_type_t setting, uint32_t value)
+zos_result_t arducam_set_setting(arducam_setting_type_t setting, int32_t value)
 {
     return context->driver->callback.set_setting(setting, value);
 }
 
 /*************************************************************************************************/
-zos_result_t arducam_get_setting(arducam_setting_type_t setting, uint32_t *value_ptr)
+zos_result_t arducam_get_setting(arducam_setting_type_t setting, int32_t *value_ptr)
 {
     return context->driver->callback.get_setting(setting, value_ptr);
 }
@@ -191,28 +194,42 @@ static void poll_image_status_handler(void *arg)
 }
 
 /*************************************************************************************************/
+static void write_image_data_handler(void *arg)
+{
+    zos_result_t result;
+    const uint32_t chunk_size = (uint32_t)arg;
+    const void *buffer = context->current_buffer;
+
+    context->image_data_remaining -= chunk_size;
+
+    if(context->image_data_remaining > 0)
+    {
+        zn_event_issue(read_image_data_handler, NULL, 0);
+    }
+
+    result = context->callback.data_writer(buffer, chunk_size, (context->image_data_remaining == 0));
+    if((result != ZOS_SUCCESS) || (context->image_data_remaining == 0))
+    {
+        reset_capture_context();
+    }
+}
+
+/*************************************************************************************************/
 static void read_image_data_handler(void *arg)
 {
     zos_result_t result;
     const uint32_t chunk_size = MIN(context->image_data_remaining, context->buffer_length);
 
-    if(ZOS_FAILED(result, context->driver->callback.read_data(context->buffer, chunk_size)))
+    context->current_buffer = (context->current_buffer == context->buffer1) ? context->buffer2 : context->buffer1;
+
+    if(ZOS_FAILED(result, context->driver->callback.read_data(context->current_buffer, chunk_size)))
     {
         context->callback.error_handler(result);
         reset_capture_context();
     }
     else
     {
-        context->image_data_remaining -= chunk_size;
-        result = context->callback.data_writer(context->buffer, chunk_size, (context->image_data_remaining == 0));
-        if((result != ZOS_SUCCESS) || (context->image_data_remaining == 0))
-        {
-            reset_capture_context();
-        }
-        else
-        {
-            zn_event_issue(read_image_data_handler, NULL, 0);
-        }
+        zn_event_issue(write_image_data_handler, (void*)chunk_size, EVENT_FLAGS1(NETWORK_THREAD));
     }
 }
 
@@ -222,6 +239,7 @@ static void reset_capture_context(void)
     arducam_driver_spi_burst_read_stop();
     zn_event_unregister(poll_image_status_handler, NULL);
     zn_event_unregister(read_image_data_handler, NULL);
+    zn_event_unregister(write_image_data_handler, NULL);
     context->flag.is_capturing = ZOS_FALSE;
     context->flag.is_image_ready = ZOS_FALSE;
     context->image_data_remaining = 0;

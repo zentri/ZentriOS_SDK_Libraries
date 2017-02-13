@@ -23,7 +23,7 @@
 #define OV2640_I2C_CLOCK I2C_CLOCK_STANDARD_SPEED
 
 
-#define OV2640_WRITE_VERIFY(addr, val) if(arducam_driver_i2c_write_reg(addr, val) != 0) return ZOS_ERROR
+#define OV2640_WRITE_VERIFY(addr, val) ZOS_VERIFY(arducam_driver_i2c_write_reg(addr, val))
 
 
 
@@ -74,7 +74,6 @@ static zos_result_t ov2640_init(const arducam_driver_config_t *config)
     memset(ov2640_settings, 0, sizeof(ov2640_settings));
 
     ov2640_settings[ARDUCAM_SETTING_QUALITY] = config->jpeg_quality;
-    ov2640_settings[ARDUCAM_SETTING_FORMAT] = config->format;
     ov2640_settings[ARDUCAM_SETTING_RESOLUTION] = config->resolution;
     ov2640_settings[ARDUCAM_SETTING_GAINCEILING] = COM9_DEFAULT;
 
@@ -92,15 +91,15 @@ static zos_result_t ov2640_init(const arducam_driver_config_t *config)
 static zos_result_t ov2640_validate(void)
 {
 #define SPI_TEST_VALUE 0xBA
-    uint8_t reg_value;
     ov2640_id_t id;
+    uint8_t reg_value;
 
     OV2640_WRITE_VERIFY(BANK_SEL, BANK_SEL_SENSOR);
 
-    id.Manufacturer_ID1 = arducam_driver_i2c_read_reg(MIDH, &reg_value);
-    id.Manufacturer_ID2 = arducam_driver_i2c_read_reg(MIDL, &reg_value);
-    id.PIDH = arducam_driver_i2c_read_reg(REG_PID, &reg_value);
-    id.PIDL = arducam_driver_i2c_read_reg(REG_VER, &reg_value);
+    arducam_driver_i2c_read_reg(MIDH, &id.Manufacturer_ID1);
+    arducam_driver_i2c_read_reg(MIDL, &id.Manufacturer_ID2 );
+    arducam_driver_i2c_read_reg(REG_PID, &id.PIDH);
+    arducam_driver_i2c_read_reg(REG_VER, &id.PIDL);
 
     if(!(id.PIDH == OV2640_ID))
     {
@@ -139,8 +138,8 @@ static zos_result_t ov2640_reset(void)
     OV2640_WRITE_VERIFY(BANK_SEL, BANK_SEL_SENSOR);
     OV2640_WRITE_VERIFY(0x15, 0x00);
     //ZOS_VERIFY(ov2640_set_setting(ARDUCAM_SETTING_FORMAT, ov2640_settings[ARDUCAM_SETTING_FORMAT]));
-    ZOS_VERIFY(ov2640_set_setting(ARDUCAM_SETTING_RESOLUTION, ov2640_settings[ARDUCAM_SETTING_RESOLUTION]));
-    ZOS_VERIFY(ov2640_set_setting(ARDUCAM_SETTING_QUALITY, ov2640_settings[ARDUCAM_SETTING_QUALITY]));
+    ZOS_VERIFY(set_resolution(ov2640_settings[ARDUCAM_SETTING_RESOLUTION]));
+    ZOS_VERIFY(set_quality(ov2640_settings[ARDUCAM_SETTING_QUALITY]));
 
     ZOS_VERIFY(arducam_driver_spi_clear_bit(ARDUCHIP_REG_FIFO, FIFO_CLEAR_MASK|FIFO_RDPTR_RST_MASK|FIFO_WRPTR_RST_MASK));
     ZOS_VERIFY(arducam_driver_spi_set_bit(ARDUCHIP_REG_TIM, MODE_MASK));
@@ -164,7 +163,7 @@ static zos_result_t ov2640_stop_capture(void)
 /*************************************************************************************************/
 static zos_result_t ov2640_is_capture_ready(uint32_t *image_size_ptr)
 {
-    uint8_t status;
+    uint8_t status = 0;
 
     ZOS_VERIFY(arducam_driver_spi_read_reg(ARDUCHIP_REG_STATUS, &status));
 
@@ -185,9 +184,14 @@ static zos_result_t ov2640_read_data(void *data, uint16_t length)
 }
 
 /*************************************************************************************************/
-static zos_result_t ov2640_set_setting(arducam_setting_type_t setting, uint32_t value)
+static zos_result_t ov2640_set_setting(arducam_setting_type_t setting, int32_t value)
 {
     zos_result_t result;
+
+    if(ov2640_settings[setting] == value)
+    {
+        return ZOS_SUCCESS;
+    }
 
     switch(setting)
     {
@@ -201,7 +205,7 @@ static zos_result_t ov2640_set_setting(arducam_setting_type_t setting, uint32_t 
         result = set_brightness(value);
         break;
     case ARDUCAM_SETTING_CONTRAST:
-        result = set_contrast(value);
+        result =  set_contrast(value);
         break;
     case ARDUCAM_SETTING_SATURATION:
         result = set_saturation(value);
@@ -230,9 +234,9 @@ static zos_result_t ov2640_set_setting(arducam_setting_type_t setting, uint32_t 
 //    case ARDUCAM_SETTING_WHITEBALANCE:
 //        result = set_whitebalance(value);
 //        break;
-//    case ARDUCAM_SETTING_SPECIALEFFECT:
-//        result = set_specialeffect(value);
-//        break;
+    case ARDUCAM_SETTING_SPECIALEFFECT:
+        result = set_specialeffect(value);
+        break;
 //    case ARDUCAM_SETTING_FRAMERATE:
 //        result = set_framerate(value);
 //        break;
@@ -247,11 +251,16 @@ static zos_result_t ov2640_set_setting(arducam_setting_type_t setting, uint32_t 
         break;
     }
 
+    if(result == ZOS_SUCCESS)
+    {
+        ov2640_settings[setting] = value;
+    }
+
     return result;
 }
 
 /*************************************************************************************************/
-static zos_result_t ov2640_get_setting(arducam_setting_type_t setting, uint32_t *value_ptr)
+static zos_result_t ov2640_get_setting(arducam_setting_type_t setting, int32_t *value_ptr)
 {
     if(setting < ARDUCAM_SETTING_MAX)
     {
@@ -284,8 +293,6 @@ static zos_result_t set_contrast(int level )
          OV2640_WRITE_VERIFY(ov2640_contrast_regs[0][i], ov2640_contrast_regs[val][i]);
     }
 
-    ov2640_settings[ARDUCAM_SETTING_CONTRAST] = level;
-
     return ZOS_SUCCESS;
 }
 
@@ -307,8 +314,6 @@ static zos_result_t set_saturation(int level )
          OV2640_WRITE_VERIFY(ov2640_saturation_regs[0][i], ov2640_saturation_regs[val][i]);
     }
 
-    ov2640_settings[ARDUCAM_SETTING_SATURATION] = level;
-
     return ZOS_SUCCESS;
 }
 
@@ -329,8 +334,6 @@ static zos_result_t set_brightness(int level )
     {
          OV2640_WRITE_VERIFY(ov2640_brightness_regs[0][i], ov2640_brightness_regs[val][i]);
     }
-
-    ov2640_settings[ARDUCAM_SETTING_BRIGHTNESS] = level;
 
     return ZOS_SUCCESS;
 }
@@ -368,8 +371,6 @@ static zos_result_t set_resolution(int resolution)
 
     ZOS_VERIFY(arducam_driver_i2c_write_regs(reg_list, NULL, 0));
 
-    ov2640_settings[ARDUCAM_SETTING_RESOLUTION] = resolution;
-
     return ZOS_SUCCESS;
 }
 
@@ -385,8 +386,6 @@ static zos_result_t set_gainceiling(int gainceiling)
 
     /* Write gain ceiling register */
     OV2640_WRITE_VERIFY(COM9, COM9_AGC_SET(gainceiling));
-
-    ov2640_settings[ARDUCAM_SETTING_GAINCEILING] = gainceiling;
 
     return ZOS_SUCCESS;
 }
@@ -407,8 +406,6 @@ static zos_result_t set_quality(int qs)
     /* Write QS register */
     OV2640_WRITE_VERIFY(QS, val);
 
-    ov2640_settings[ARDUCAM_SETTING_QUALITY] = qs;
-
     return ZOS_SUCCESS;
 }
 
@@ -428,8 +425,6 @@ static zos_result_t set_flip(int flip)
     }
 
     OV2640_WRITE_VERIFY(0x04,reg04);
-
-    ov2640_settings[ARDUCAM_SETTING_FLIP] = flip;
 
     return ZOS_SUCCESS;
 }
@@ -453,7 +448,26 @@ static zos_result_t set_mirror(int mirror)
 
     OV2640_WRITE_VERIFY(0x04,reg04);
 
-    ov2640_settings[ARDUCAM_SETTING_MIRROR] = mirror;
+    return ZOS_SUCCESS;
+}
+
+/*************************************************************************************************/
+static zos_result_t set_specialeffect(int effect)
+{
+    if(effect < ARDUCAM_SPECIALEFFECT_NONE || effect >= ARDUCAM_SPECIALEFFECT_COUNT)
+    {
+        return ZOS_INVALID_ARG;
+    }
+
+    /* Switch to DSP register bank */
+    OV2640_WRITE_VERIFY(BANK_SEL, BANK_SEL_DSP);
+
+    /* Write contrast registers */
+    for (int i=0; i< ARRAY_COUNT(ov2640_special_effect_regs[0]); i++)
+    {
+         OV2640_WRITE_VERIFY(ov2640_special_effect_regs[0][i], ov2640_special_effect_regs[effect+1][i]);
+    }
 
     return ZOS_SUCCESS;
 }
+

@@ -241,6 +241,20 @@ static const uint8_t ov2640_saturation_regs[ARDUCAM_SATURATION_LEVELS + 1][5] =
     { 0x00, 0x02, 0x03, 0x58, 0x58 }, /* +2 */
 };
 
+static const uint8_t ov2640_special_effect_regs[ARDUCAM_SPECIALEFFECT_COUNT + 1][5] =
+{
+    { BPADDR, BPDATA, BPADDR, BPDATA, BPDATA },
+    [1+ARDUCAM_SPECIALEFFECT_NONE]        = { 0x00, 0x00, 0x05, 0x80, 0x80 },
+    [1+ARDUCAM_SPECIALEFFECT_NEGATIVE]    = { 0x00, 0x40, 0x05, 0x80, 0x80 },
+    [1+ARDUCAM_SPECIALEFFECT_GRAY]        = { 0x00, 0x18, 0x05, 0x80, 0x80 },
+    [1+ARDUCAM_SPECIALEFFECT_SEPIA]       = { 0x00, 0x58, 0x05, 0x80, 0x80 },
+    [1+ARDUCAM_SPECIALEFFECT_BLUISH]      = { 0x00, 0x18, 0x05, 0xA0, 0x40 },
+    [1+ARDUCAM_SPECIALEFFECT_REDDISH]     = { 0x00, 0x18, 0x05, 0x40, 0xC0 },
+    [1+ARDUCAM_SPECIALEFFECT_GREENISH]    = { 0x00, 0x18, 0x05, 0x40, 0x40 },
+    [1+ARDUCAM_SPECIALEFFECT_ANTIQUE]     = { 0x00, 0x18, 0x05, 0x40, 0xA6 },
+};
+
+
 static const reg_addr_value_t ov2640_jpeg_regs[] =
 {
         { 0xe0, 0x14 },
@@ -689,3 +703,4 @@ static const reg_addr_value_t ov2640_1600x1200_jpeg[] =
 
     {REG_ADDR_ACTION, REG_ACTION_TERMINATE},
 };
+

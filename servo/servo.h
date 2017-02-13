@@ -18,6 +18,11 @@
 
 #define SERVO_DUTY_PADDING 1000
 
+#define SERVO_FULL_LEFT_POSITION    0
+#define SERVO_MIDDLE_POSITION       5000
+#define SERVO_FULL_RIGHT_POSITION   10000
+
+
 typedef struct
 {
     uint32_t frequency;     // PWM frequency
@@ -56,6 +61,14 @@ zos_result_t servo_deinit(zos_gpio_t gpio);
 zos_result_t servo_set_position(zos_gpio_t gpio, uint32_t position);
 
 /**
+ * Get the servo's current position
+ * @param gpio The GPIO with PWM functionality
+ * @param position_ptr
+ * @return
+ */
+zos_result_t servo_get_position(zos_gpio_t gpio, uint32_t *position_ptr);
+
+/**
  * Set the rotation rate of the servo
  *
  * This is intended for fully rotational servos.
@@ -69,4 +82,12 @@ zos_result_t servo_set_position(zos_gpio_t gpio, uint32_t position);
  * @param speed Rate to spin servo
  */
 zos_result_t servo_set_speed(zos_gpio_t gpio, uint32_t speed);
+
+/**
+ *
+ * @param gpio
+ * @param speed_ptr
+ * @return
+ */
+zos_result_t servo_get_speed(zos_gpio_t gpio, uint32_t *speed_ptr);
 

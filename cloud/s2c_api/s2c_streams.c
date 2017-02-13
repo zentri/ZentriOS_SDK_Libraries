@@ -112,7 +112,7 @@ WEAK zos_result_t s2c_streams_write_fpi_value(const char *stream, const fpi_word
 }
 
 /*************************************************************************************************/
-WEAK zos_result_t s2c_streams__write_float_value(const char *stream, float value)
+WEAK zos_result_t s2c_streams_write_float_value(const char *stream, float value)
 {
     uint8_t buffer[16];
     MSGPACK_INIT_WITH_BUFFER(context, buffer, sizeof(buffer));

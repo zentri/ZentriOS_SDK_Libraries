@@ -18,6 +18,7 @@ typedef struct servo_context
     struct servo_context *next;
     zos_gpio_t gpio;    // this GPIO MUST be mapped to a PWM
     servo_profile_t profile;
+    uint32_t current_duty;
 } servo_context_t;
 
 
@@ -43,6 +44,7 @@ zos_result_t servo_init(zos_gpio_t gpio, const servo_profile_t *servo_profile)
     else
     {
         context->gpio = gpio;
+        context->current_duty = servo_profile->duty_default;
         memcpy(&context->profile, servo_profile, sizeof(servo_profile_t));
         context->next = servo_list;
         servo_list = context;
@@ -82,6 +84,7 @@ zos_result_t servo_deinit(zos_gpio_t gpio)
 /*************************************************************************************************/
 zos_result_t servo_set_position(zos_gpio_t gpio, uint32_t position)
 {
+    zos_result_t result;
     servo_context_t *context = get_servo_context(gpio);
     if(context == NULL)
     {
@@ -91,7 +94,28 @@ zos_result_t servo_set_position(zos_gpio_t gpio, uint32_t position)
     const uint32_t duty = (context->profile.duty_min*POSITION_PADDING +
             ((position * (context->profile.duty_max - context->profile.duty_min)) / MAX_RANGE)) / SERVO_DUTY_PADDING;
 
-    return zn_pwm_update_with_resolution(gpio, duty, context->profile.frequency);
+    if(!ZOS_FAILED(result, zn_pwm_update_with_resolution(gpio, duty, context->profile.frequency)))
+    {
+        context->current_duty = duty;
+    }
+
+    return result;
+}
+
+/*************************************************************************************************/
+zos_result_t servo_get_position(zos_gpio_t gpio, uint32_t *position_ptr)
+{
+    servo_context_t *context = get_servo_context(gpio);
+    if(context == NULL)
+    {
+        return ZOS_NOT_FOUND;
+    }
+    else
+    {
+        *position_ptr = context->current_duty;
+
+        return ZOS_SUCCESS;
+    }
 }
 
 /*************************************************************************************************/
@@ -117,6 +141,21 @@ zos_result_t servo_set_speed(zos_gpio_t gpio, uint32_t speed)
 
 }
 
+/*************************************************************************************************/
+zos_result_t servo_get_speed(zos_gpio_t gpio, uint32_t *speed_ptr)
+{
+    servo_context_t *context = get_servo_context(gpio);
+    if(context == NULL)
+    {
+        return ZOS_NOT_FOUND;
+    }
+    else
+    {
+        *speed_ptr = context->current_duty;
+
+        return ZOS_SUCCESS;
+    }
+}
 
 /*************************************************************************************************/
 static servo_context_t* get_servo_context(zos_gpio_t gpio)

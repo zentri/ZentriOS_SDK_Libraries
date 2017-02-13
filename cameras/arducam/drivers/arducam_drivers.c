@@ -71,15 +71,15 @@ zos_result_t arducam_driver_init(zos_spi_device_t *spi, zos_i2c_device_t *i2c, c
 }
 
 /*************************************************************************************************/
-uint8_t arducam_driver_i2c_write_reg(uint8_t addr, uint8_t data)
+zos_result_t arducam_driver_i2c_write_reg(uint8_t addr, uint8_t data)
 {
-    return (zn_i2c_master_write_reg8(i2c_device, addr, data) == ZOS_SUCCESS) ? 0 : 0xFF;
+    return zn_i2c_master_write_reg8(i2c_device, addr, data);
 }
 
 /*************************************************************************************************/
-uint8_t arducam_driver_i2c_read_reg(uint8_t addr, uint8_t *val)
+zos_result_t arducam_driver_i2c_read_reg(uint8_t addr, uint8_t *val)
 {
-    return (zn_i2c_master_read_reg8(i2c_device, addr, val) == ZOS_SUCCESS) ? *val : 0xFF;
+    return zn_i2c_master_read_reg8(i2c_device, addr, val);
 }
 
 /*************************************************************************************************/

@@ -41,8 +41,8 @@ typedef struct
         zos_result_t (*reset)(void);
         zos_result_t (*is_capture_ready)(uint32_t *image_size_ptr);
         zos_result_t (*read_data)(void *data, uint16_t length);
-        zos_result_t (*set_setting)(arducam_setting_type_t setting, uint32_t value);
-        zos_result_t (*get_setting)(arducam_setting_type_t setting, uint32_t *value_ptr);
+        zos_result_t (*set_setting)(arducam_setting_type_t setting, int32_t value);
+        zos_result_t (*get_setting)(arducam_setting_type_t setting, int32_t *value_ptr);
     } callback;
 
 } arducam_driver_t;
@@ -61,9 +61,9 @@ zos_result_t arducam_get_driver(arducam_type_t type, const arducam_driver_t **dr
 
 zos_result_t arducam_driver_init(zos_spi_device_t *spi, zos_i2c_device_t *i2c, const arducam_driver_t *driver, const arducam_config_t *config);
 
-uint8_t arducam_driver_i2c_write_reg(uint8_t addr, uint8_t data);
+zos_result_t arducam_driver_i2c_write_reg(uint8_t addr, uint8_t data);
 
-uint8_t arducam_driver_i2c_read_reg(uint8_t addr, uint8_t *val);
+zos_result_t arducam_driver_i2c_read_reg(uint8_t addr, uint8_t *val);
 
 zos_result_t arducam_driver_i2c_write_regs(const reg_addr_value_t *regs, const reg_addr_value_t *action_list, uint8_t action_list_len);
 
