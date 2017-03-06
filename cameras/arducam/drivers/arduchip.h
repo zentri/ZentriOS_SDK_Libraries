@@ -10,6 +10,8 @@
 #pragma once
 
 
+#define MAX_IMAGE_SIZE 16721923
+
 // Registers specific to the ArduCAM-M-2MP camera shield SPI interface
 
 

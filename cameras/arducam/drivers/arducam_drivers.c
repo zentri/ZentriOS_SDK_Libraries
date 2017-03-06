@@ -238,6 +238,11 @@ zos_result_t arducam_driver_get_fifo_size(uint32_t *size_ptr)
     ZOS_VERIFY(arducam_driver_spi_read_reg(FIFO_SIZE1, &size_part));
     size |= (uint32_t)size_part;
 
+    if(size > MAX_IMAGE_SIZE)
+    {
+        return ZOS_ERROR;
+    }
+
     *size_ptr = size;
 
     return ZOS_SUCCESS;

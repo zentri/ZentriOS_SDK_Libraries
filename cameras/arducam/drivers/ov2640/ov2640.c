@@ -157,7 +157,7 @@ static zos_result_t ov2640_start_capture(void)
 /*************************************************************************************************/
 static zos_result_t ov2640_stop_capture(void)
 {
-    return ZOS_UNIMPLEMENTED;
+    return arducam_driver_spi_set_bit(ARDUCHIP_REG_FIFO, FIFO_CLEAR_MASK|FIFO_RDPTR_RST_MASK|FIFO_WRPTR_RST_MASK);
 }
 
 /*************************************************************************************************/
