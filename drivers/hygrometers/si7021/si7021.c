@@ -61,7 +61,7 @@ static zos_result_t write_reg(uint8_t reg, uint8_t *data, uint16_t length);
 static const zos_i2c_device_t const ZOS_I2C_SI7021 =
 {
     .address = (uint16_t)SI7021_SLAVE_ADDRESS,
-    .speed = I2C_CLOCK_LOW_SPEED,
+    .speed = I2C_CLOCK_STANDARD_SPEED,
     .retries = (uint16_t)3U,
     .flags = 0,
     .read_timeout = 1000 // timeout after 40ms of waiting for data
