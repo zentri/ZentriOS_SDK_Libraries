@@ -73,6 +73,7 @@
 #define __CM4_CMSIS_VERSION       ((__CM4_CMSIS_VERSION_MAIN << 16) | \
                                     __CM4_CMSIS_VERSION_SUB          )     /*!< CMSIS HAL version number         */
 
+#undef __CORTEX_M
 #define __CORTEX_M                (0x04)                                   /*!< Cortex-M Core                    */
 
 
