@@ -1,0 +1,6 @@
+
+$EMLIB/Changes_emlib.txt
+$EMLIB/ReadMe_emlib.txt
+
+$EMLIB/inc/*
+$EMLIB/src/*
