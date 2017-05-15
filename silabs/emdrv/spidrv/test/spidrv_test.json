@@ -1,0 +1,71 @@
+{
+  "name": "SPIDRV",
+  "defines": [],
+  "emlib": [
+    "em_system.c",
+    "em_assert.c",
+    "em_core.c",
+    "em_emu.c",
+    "em_cmu.c",
+    "em_dma.c",
+    "em_ldma.c",
+    "em_usart.c",
+    "em_gpio.c",
+    "em_rtc.c",
+    "em_rtcc.c"
+  ],
+  "emdrv": [
+    "spidrv/src/spidrv.c",
+    "spidrv/test/main.c",
+    "spidrv/test/dmactrl.c",
+    "rtcdrv/src/rtcdriver.c",
+    "dmadrv/src/dmadrv.c"
+  ],
+  "includes": [    
+    "##em-path-emdrv##/common/inc",
+    "##em-path-emdrv##/rtcdrv/inc",
+    "##em-path-emdrv##/rtcdrv/config",
+    "##em-path-emdrv##/dmadrv/inc",
+    "##em-path-emdrv##/dmadrv/config",
+    "##em-path-emdrv##/spidrv/inc",
+    "##em-path-emdrv##/spidrv/config",
+    "##em-path-emdrv##/spidrv/test"
+  ],
+  "config": {
+    "_comment": "Disable SPIDRV test on all P1 (W)STKs, since they don't have 2 USARTs available on EXP header",
+    "EFM32_GXXX_STK": {
+      "disabled": true
+    },
+    "EFM32TG_STK3300": {
+      "disabled": true
+    },
+    "EFM32GG_STK3700": {
+      "disabled": true
+    },
+    "EFM32LG_STK3600": {
+      "disabled": true
+    },
+    "EFM32WG_STK3800": {
+      "disabled": true
+    },
+    "EFM32ZG_STK3200": {
+      "disabled": true
+    },
+    "SLSTK3400A_EFM32HG": {
+      "disabled": true
+    },
+    "SLWSTK6202A_EZR32LG": {
+      "disabled": true
+    },
+    "SLWSTK6222A_EZR32WG": {
+      "disabled": true
+    },
+    "SLWSTK6240A_EZR32HG": {
+      "disabled": true
+    },
+    "__comment": "Disable SPIDRV test on GM32-based P2 (W)STKs, since they don't have enough pins on the EXP header",
+    "EFR32MG1_BRD4154A": {
+      "disabled": true
+    }
+  }
+}

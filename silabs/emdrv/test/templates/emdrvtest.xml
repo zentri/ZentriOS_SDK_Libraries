@@ -1,0 +1,48 @@
+<workspace name="emdrvtest">
+  <project name="emdrvtest" device="REPLACE_DEVICE_MARKER">
+    <directories>
+      REPLACE_DIRECTORIES_MARKER
+    </directories>
+    <cflags>
+      <optimize>speed</optimize>
+      REPLACE_OPTIMIZE_MARKER
+      <flag only_ide="rowley">-Wall</flag>
+      REPLACE_CFLAGS_MARKER
+      <define>EMDRV_REGRESSION_TEST</define>
+      <define>DEBUG_EFM_USER</define>
+      REPLACE_DEFINE_MARKER
+      REPLACE_LINKERFILE_MARKER
+    </cflags>
+    <ldflags>
+      REPLACE_LDFLAGS_MARKER
+    </ldflags>
+    <libs>
+      <lib only_ide="armgcc,rowley,studio">m</lib>
+      REPLACE_LIBS_MARKER
+    </libs>
+    <includepaths>
+      REPLACE_INCLUDE_MARKER
+      <path>##em-path-cmsis##\Include</path>
+      <path>##em-path-emlib##\inc</path>
+      <path>##em-path-unity##\src</path>
+    </includepaths>
+    <group name="src">
+      <source>##em-path-emdrv##\common\test\emdrv_unity_assert.c</source>
+      REPLACE_SRC_MARKER
+    </group>
+    <group name="unity">
+      <source>##em-path-unity##\src\unity.c</source>
+      <source>##em-path-unity##\src\unity_conf.c</source>
+      <source>##em-path-unity##\src\unity_swo.c</source>
+    </group>
+    <patches>
+      <!-- 
+        Removing nano.specs and then re-applying it. This is done, because the 
+        m0 makefile skeleton already contains the nano.specs configuration.
+      -->
+      <patch only_ide="armgcc" match="--specs=nano.specs"></patch>
+      <patch only_ide="armgcc" match="-Xlinker">--specs=nano.specs -Xlinker</patch>      
+      REPLACE_PATCHES_MARKER
+    </patches>
+  </project>
+</workspace>

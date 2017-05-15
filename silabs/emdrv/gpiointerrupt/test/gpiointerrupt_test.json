@@ -1,0 +1,19 @@
+{
+  "name": "GPIOINTERRUPT",
+  "defines": [],
+  "emlib": [
+    "em_system.c",
+    "em_emu.c",
+    "em_cmu.c",
+    "em_gpio.c",
+    "em_assert.c",
+    "em_core.c"
+  ],
+  "emdrv": [
+    "gpiointerrupt/src/gpiointerrupt.c",
+    "gpiointerrupt/test/main.c"
+  ],
+  "includes": [
+    "##em-path-emdrv##/gpiointerrupt/inc"
+  ]
+}

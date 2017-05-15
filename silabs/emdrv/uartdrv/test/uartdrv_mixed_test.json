@@ -1,0 +1,42 @@
+{
+  "name": "UARTDRV_MIXED",
+  "defines": ["UARTDRV_TEST_MIXED"],
+  "emlib": [
+    "em_system.c",
+    "em_assert.c",
+    "em_core.c",
+    "em_emu.c",
+    "em_cmu.c",
+    "em_dma.c",
+    "em_ldma.c",
+    "em_usart.c",
+    "em_leuart.c",
+    "em_gpio.c",
+    "em_rtc.c",
+    "em_rtcc.c"
+  ],
+  "emdrv": [
+    "uartdrv/src/uartdrv.c",
+    "uartdrv/test/main.c",
+    "uartdrv/test/dmactrl.c",
+    "rtcdrv/src/rtcdriver.c",
+    "gpiointerrupt/src/gpiointerrupt.c",
+    "dmadrv/src/dmadrv.c"
+  ],
+  "includes": [    
+    "##em-path-emdrv##/common/inc",
+    "##em-path-emdrv##/rtcdrv/inc",
+    "##em-path-emdrv##/rtcdrv/config",
+    "##em-path-emdrv##/dmadrv/inc",    
+    "##em-path-emdrv##/dmadrv/config",
+    "##em-path-emdrv##/gpiointerrupt/inc",
+    "##em-path-emdrv##/uartdrv/inc",
+    "##em-path-emdrv##/uartdrv/config",
+    "##em-path-emdrv##/uartdrv/test"
+  ],
+  "config": {
+    "EFR32MG2_BRD4150B": {
+       "device_header_type": "restricted"
+    }
+  }
+}

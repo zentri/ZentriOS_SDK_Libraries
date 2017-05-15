@@ -1,0 +1,102 @@
+{
+  "name": "TEMPDRV",
+  "defines": [],
+  "emlib": [
+    "em_system.c",
+    "em_assert.c",
+    "em_emu.c",
+    "em_cmu.c",
+    "em_gpio.c"
+  ],
+  "emdrv": [
+    "tempdrv/src/tempdrv.c",
+    "tempdrv/test/main.c"
+  ],
+  "includes": [    
+    "##em-path-emdrv##/common/inc",
+    "##em-path-emdrv##/tempdrv/inc",
+    "##em-path-emdrv##/tempdrv/config",
+    "##em-path-emdrv##/tempdrv/test"
+  ],
+  "config": {
+    "_comment": "Disable TEMPDRV test on all P1 (W)STKs",
+    "EFM32GG_DK3750": {
+      "disabled": true
+    },
+    "EFM32GG_STK3700": {
+      "disabled": true
+    },
+    "EFM32G_DK3550": {
+      "disabled": true
+    },
+    "EFM32LG_DK3650": {
+      "disabled": true
+    },
+    "EFM32LG_STK3600": {
+      "disabled": true
+    },
+    "EFM32TG_STK3300": {
+      "disabled": true
+    },
+    "EFM32WG_DK3850": {
+      "disabled": true
+    },
+    "EFM32WG_STK3800": {
+      "disabled": true
+    },
+    "EFM32ZG_STK3200": {
+      "disabled": true
+    },
+    "EFM32_GXXX_DK": {
+      "disabled": true
+    },
+    "EFM32_GXXX_STK": {
+      "disabled": true
+    },
+    "SLSENSORPUCK_EFM32G": {
+      "disabled": true
+    },
+    "SLSTK3400A_EFM32HG": {
+      "disabled": true
+    },
+    "SLWSTK6200A_EZR32LG": {
+      "disabled": true
+    },
+    "SLWSTK6201A_EZR32LG": {
+      "disabled": true
+    },
+    "SLWSTK6202A_EZR32LG": {
+      "disabled": true
+    },
+    "SLWSTK6220A_EZR32WG": {
+      "disabled": true
+    },
+    "SLWSTK6221A_EZR32WG": {
+      "disabled": true
+    },
+    "SLWSTK6222A_EZR32WG": {
+      "disabled": true
+    },
+    "SLWSTK6223A_EZR32WG": {
+      "disabled": true
+    },
+    "SLWSTK6224A_EZR32WG": {
+      "disabled": true
+    },
+    "SLWSTK6240A_EZR32HG": {
+      "disabled": true
+    },
+    "SLWSTK6241A_EZR32HG": {
+      "disabled": true
+    },
+    "SLWSTK6242A_EZR32HG": {
+      "disabled": true
+    },
+    "SLWSTK6243A_EZR32HG": {
+      "disabled": true
+    },
+    "SLWSTK6244A_EZR32HG": {
+      "disabled": true
+    }
+  }
+}

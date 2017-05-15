@@ -1,0 +1,53 @@
+{
+  "name": "CPP",
+  "defines": [],
+  "emlib": [
+    "em_system.c",
+    "em_emu.c",
+    "em_cmu.c",
+    "em_usart.c",
+    "em_dma.c",
+    "em_ldma.c",
+    "em_gpio.c",
+    "em_core.c",
+    "em_msc.c",
+    "em_rmu.c",
+    "em_rtc.c",
+    "em_rtcc.c",
+    "em_timer.c",
+    "em_letimer.c",
+    "em_assert.c"
+  ],
+  "emdrv": [
+    "dmadrv/src/dmadrv.c",
+    "gpiointerrupt/src/gpiointerrupt.c",
+    "nvm/src/nvm.c",
+    "nvm/src/nvm_hal.c",
+    "rtcdrv/src/rtcdriver.c",
+    "sleep/src/sleep.c",
+    "ustimer/src/ustimer.c",
+    "cpp/test/main.cpp"
+  ],
+  "includes": [    
+    "##em-path-emdrv##/common/inc",
+    "##em-path-emdrv##/dmadrv/inc",
+    "##em-path-emdrv##/dmadrv/config",
+    "##em-path-emdrv##/dmadrv/test",
+    "##em-path-emdrv##/gpiointerrupt/inc",
+    "##em-path-emdrv##/nvm/config",
+    "##em-path-emdrv##/nvm/inc",
+    "##em-path-emdrv##/rtcdrv/inc",
+    "##em-path-emdrv##/rtcdrv/config",
+    "##em-path-emdrv##/sleep/inc",
+    "##em-path-emdrv##/ustimer/inc",
+    "##em-path-emdrv##/ustimer/config",
+    "##em-path-emdrv##/cpp/test"
+  ],
+  "patches": [
+    {
+        "only_ide": "iar",
+        "match": "CCLangSelect&lt;/name&gt;&#13;&#10;          &lt;state&gt;0",
+        "value": "CCLangSelect&lt;/name&gt;&#13;&#10;          &lt;state&gt;1"
+    }
+  ]
+}
