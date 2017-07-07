@@ -10,6 +10,7 @@
 #pragma once
 
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
 
 #include <stdlib.h>
 #include <string.h>
@@ -108,8 +109,6 @@ typedef struct
 
 
 extern XIO_HANDLE getIoMqttTransportProvider(const char* fully_qualified_name, const MQTT_TRANSPORT_PROXY_OPTIONS* mqtt_transport_proxy_options);
-
-
 
 extern connection_info_t connection_info;
 

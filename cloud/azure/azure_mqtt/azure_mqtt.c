@@ -19,7 +19,10 @@ typedef struct
     struct
     {
         IOTHUB_CLIENT_CONNECTION_STATUS_CALLBACK connection;
-        IOTHUB_CLIENT_MESSAGE_CALLBACK_ASYNC messsage;
+        IOTHUB_CLIENT_MESSAGE_CALLBACK_ASYNC message_received;
+        void *message_received_arg;
+        IOTHUB_CLIENT_EVENT_CONFIRMATION_CALLBACK message_sent;
+        void *message_sent_arg;
     } callbacks;
 } azure_mqtt_context_t;
 
@@ -38,11 +41,10 @@ static azure_mqtt_context_t azure_mqtt_context;
 
 
 /*************************************************************************************************/
-zos_result_t azure_mqtt_start(const char *hostname, const char *device_key)
+zos_result_t azure_mqtt_start(const char *hostname, const char *device_id, const char *device_key)
 {
     zos_result_t result;
     char hostname_buffer[128];
-    char uuid_buffer[DEVICE_UUID_LEN+1];
 
     strncpy(hostname_buffer, hostname, sizeof(hostname_buffer));
 
@@ -58,7 +60,7 @@ zos_result_t azure_mqtt_start(const char *hostname, const char *device_key)
 
     const IOTHUB_CLIENT_CONFIG client_config =
     {
-            .deviceId = uuid_buffer,
+            .deviceId = device_id,
             .deviceKey = device_key,
             .iotHubName = hostname_buffer,
             .iotHubSuffix = suffix
@@ -67,8 +69,11 @@ zos_result_t azure_mqtt_start(const char *hostname, const char *device_key)
     azure_mqtt_context.client_handle = IoTHubClient_LL_Create(&client_config);
     if(azure_mqtt_context.client_handle != NULL)
     {
-        IoTHubClient_LL_SetMessageCallback(azure_mqtt_context.client_handle, azure_mqtt_context.callbacks.messsage, NULL);
-        IoTHubClient_LL_SetConnectionStatusCallback(azure_mqtt_context.client_handle, azure_mqtt_context.callbacks.connection, NULL);
+        IoTHubClient_LL_SetMessageCallback(azure_mqtt_context.client_handle,
+                                           azure_mqtt_context.callbacks.message_received,
+                                           azure_mqtt_context.callbacks.message_received_arg);
+        IoTHubClient_LL_SetConnectionStatusCallback(azure_mqtt_context.client_handle,
+                                                    azure_mqtt_context.callbacks.connection, NULL);
         result = ZOS_SUCCESS;
 
         azure_mqtt_trigger_processing();
@@ -97,37 +102,56 @@ zos_result_t azure_mqtt_stop(void)
 }
 
 /*************************************************************************************************/
-zos_result_t azure_mqtt_send_message_str(const char *json_str)
+zos_result_t azure_mqtt_send_message_str(const char *json_str, void *callback_arg)
 {
     zos_result_t result;
-    IOTHUB_MESSAGE_HANDLE messageHandle;
+    IOTHUB_MESSAGE_HANDLE message_handle;
 
 
     if(azure_mqtt_context.client_handle == NULL)
     {
         result = ZOS_UNINITIALIZED;
     }
-    else if((messageHandle = IoTHubMessage_CreateFromByteArray((void*)json_str, strlen(json_str))) ==  NULL)
+    else if((message_handle = IoTHubMessage_CreateFromByteArray((void*)json_str, strlen(json_str))) ==  NULL)
     {
         result = ZOS_NO_MEM;
     }
     else
     {
-        (void)IoTHubMessage_SetMessageId(messageHandle, "MSG_ID");
-        (void)IoTHubMessage_SetCorrelationId(messageHandle, "CORE_ID");
+        if(ZOS_FAILED(result, azure_mqtt_send_message(message_handle, callback_arg)))
+        {
 
-        if(IoTHubClient_LL_SendEventAsync(azure_mqtt_context.client_handle,
-                                          messageHandle,
-                                          NULL, NULL) != IOTHUB_CLIENT_OK)
-        {
-            result = ZOS_ERROR;
-        }
-        else
-        {
-            result = ZOS_SUCCESS;
         }
 
-        IoTHubMessage_Destroy(messageHandle);
+        if(azure_mqtt_context.callbacks.message_sent == NULL)
+        {
+            IoTHubMessage_Destroy(message_handle);
+        }
+    }
+
+    return result;
+}
+
+/*************************************************************************************************/
+zos_result_t azure_mqtt_send_message(IOTHUB_MESSAGE_HANDLE message_handle, void *callback_arg)
+{
+    zos_result_t result;
+
+    if(callback_arg == NULL)
+    {
+        callback_arg = azure_mqtt_context.callbacks.message_sent_arg;
+    }
+
+    if(IoTHubClient_LL_SendEventAsync(azure_mqtt_context.client_handle,
+                                      message_handle,
+                                      azure_mqtt_context.callbacks.message_sent,
+                                      callback_arg) != IOTHUB_CLIENT_OK)
+    {
+        result = ZOS_ERROR;
+    }
+    else
+    {
+        result = ZOS_SUCCESS;
     }
 
     return result;
@@ -141,11 +165,18 @@ void azure_mqtt_set_connection_status_callback(IOTHUB_CLIENT_CONNECTION_STATUS_C
 }
 
 /*************************************************************************************************/
-void azure_mqtt_set_receive_message_callback(IOTHUB_CLIENT_MESSAGE_CALLBACK_ASYNC callback)
+void azure_mqtt_set_message_received_callback(IOTHUB_CLIENT_MESSAGE_CALLBACK_ASYNC callback, void *callback_arg)
 {
-    azure_mqtt_context.callbacks.messsage = callback;
+    azure_mqtt_context.callbacks.message_received = callback;
+    azure_mqtt_context.callbacks.message_received_arg = callback_arg;
 }
 
+/*************************************************************************************************/
+void azure_mqtt_set_message_sent_callback(IOTHUB_CLIENT_EVENT_CONFIRMATION_CALLBACK callback, void *callback_arg)
+{
+    azure_mqtt_context.callbacks.message_sent = callback;
+    azure_mqtt_context.callbacks.message_sent_arg = callback_arg;
+}
 
 /*************************************************************************************************/
 void azure_mqtt_trigger_processing(void)

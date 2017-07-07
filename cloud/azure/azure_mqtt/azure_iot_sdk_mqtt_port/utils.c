@@ -18,32 +18,27 @@
 /*************************************************************************************************/
 BUFFER_HANDLE Base64_Decoder(const char* source)
 {
-    BUFFER_HANDLE result;
+    BUFFER_HANDLE result = NULL;
     int retval ;
     const int slen = strlen(source);
+    uint8_t *buffer = NULL;
 
     uint32_t dlen = (slen / 4)*3;
-    if (source[slen - 1] == '=')
+
+    if((buffer = malloc(dlen)) == NULL)
     {
-        if (source[slen - 2] == '=')
-        {
-            dlen--;
-        }
-        dlen--;
+    }
+    else if((retval = base64_decode(buffer, &dlen, (void*)source, slen)) != 0)
+    {
+
+    }
+    else if((result = BUFFER_create(buffer, dlen)) == NULL)
+    {
     }
 
-    if((result = BUFFER_new()) == NULL)
+    if(buffer != NULL)
     {
-    }
-    else if(BUFFER_pre_build(result, dlen) != 0)
-    {
-        BUFFER_delete(result);
-        result = NULL;
-    }
-    else if((retval = base64_decode(BUFFER_u_char(result), &dlen, (void*)source, slen)) != 0)
-    {
-        BUFFER_delete(result);
-        result = NULL;
+        free(buffer);
     }
 
     return result;
@@ -62,13 +57,13 @@ STRING_HANDLE Base64_Encoder(BUFFER_HANDLE input)
     BUFFER_content(input, &inputBinary);
     BUFFER_size(input, &inputSize);
 
-    neededSize += ((((inputSize - 1) / 3) + 1) * 4);
+    neededSize = ((((inputSize - 1) / 3) + 1) * 4);
     neededSize += 1;
 
     encoded = (void*)malloc(neededSize);
     if (encoded != NULL)
     {
-        if((retval = base64_encode(encoded, &neededSize, inputBinary, inputSize)) != 0)
+        if((retval = base64_encode(encoded, &neededSize, inputBinary, inputSize)) == 0)
         {
             encoded[neededSize] = 0;
             result = STRING_new_with_memory((char*)encoded);

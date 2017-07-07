@@ -1,8 +1,12 @@
 NAME := lib_cloud_azure_mqtt_sdk_port
 
 
-GLOBAL_DEFINES := DONT_USE_UPLOADTOBLOB MINIMAL_LOGERROR
+GLOBAL_DEFINES := DONT_USE_UPLOADTOBLOB 
 
+# Disable log prints in Azure SDK, saves A LOT of flash
+GLOBAL_DEFINES += NO_LOGGING
+
+#GLOBAL_DEFINES += MINIMAL_LOGERROR
 
 
 

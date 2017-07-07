@@ -442,7 +442,7 @@ int IoTHubTransport_MQTT_Common_SetRetryPolicy(TRANSPORT_LL_HANDLE handle, IOTHU
 }
 
 // Called for every do_work when connection is broken
-static bool CanRetry(RETRY_LOGIC *retryLogic)
+static bool CanRetry(void *retryLogic)
 {
     bool result;
     time_t now = get_time(NULL);

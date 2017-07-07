@@ -5,6 +5,12 @@
 #include "azure_c_shared_utility/xio.h"
 
 
+
+static void tls_stream_disconnected_handler(uint32_t handle);
+static void tls_stream_received_handler(uint32_t handle);
+
+
+
 /*************************************************************************************************/
 XIO_HANDLE xio_create(const IO_INTERFACE_DESCRIPTION* io_interface_description, const void* xio_create_parameters)
 {
@@ -15,7 +21,11 @@ XIO_HANDLE xio_create(const IO_INTERFACE_DESCRIPTION* io_interface_description, 
 /*************************************************************************************************/
 void xio_destroy(XIO_HANDLE xio)
 {
-    connection_info.stream_handle = ZOS_INVALID_HANDLE;
+    if(connection_info.stream_handle != ZOS_INVALID_HANDLE)
+    {
+        zn_tcp_disconnect(connection_info.stream_handle);
+        connection_info.stream_handle = ZOS_INVALID_HANDLE;
+    }
 }
 
 /*************************************************************************************************/
@@ -29,6 +39,8 @@ int xio_open(XIO_HANDLE xio, ON_IO_OPEN_COMPLETE on_io_open_complete,
     int result;
     zos_result_t zos_result;
 
+    xio_destroy(NULL);
+
     if(ZOS_FAILED(zos_result, zn_tls_connect(ZOS_WLAN, connection_info.hostname, connection_info.port, &connection_info.stream_handle)))
     {
         LogError("Failed to open TLS connection, err:%d", zos_result);
@@ -38,9 +50,11 @@ int xio_open(XIO_HANDLE xio, ON_IO_OPEN_COMPLETE on_io_open_complete,
     else
     {
         result = 0;
-        zn_tcp_register_client_event_handlers(connection_info.stream_handle, )
+        zn_tcp_register_client_event_handlers(connection_info.stream_handle, tls_stream_disconnected_handler, tls_stream_received_handler);
         connection_info.rx_callback = on_bytes_received;
         connection_info.rx_callback_context = on_bytes_received_context;
+        connection_info.error_callback = on_io_error;
+        connection_info.error_callback_context = on_io_error_context;
         on_io_open_complete(on_io_open_complete_context, IO_OPEN_OK);
     }
 
@@ -71,22 +85,24 @@ int xio_close(XIO_HANDLE xio, ON_IO_CLOSE_COMPLETE on_io_close_complete, void* c
 int xio_send(XIO_HANDLE xio, const void* buffer, size_t size, ON_SEND_COMPLETE on_send_complete, void* callback_context)
 {
     int result;
+    zos_result_t zos_result;
 
-    /* Codes_SRS_XIO_01_011: [No error check shall be performed on buffer and size.] */
-    /* Codes_SRS_XIO_01_010: [If handle is NULL, xio_send shall return a non-zero value.] */
-    if (xio == NULL)
+    if(connection_info.stream_handle == ZOS_INVALID_HANDLE)
     {
         result = __FAILURE__;
     }
     else
     {
-        XIO_INSTANCE* xio_instance = (XIO_INSTANCE*)xio;
+        result = 0;
 
-        /* Codes_SRS_XIO_01_008: [xio_send shall pass the sequence of bytes pointed to by buffer to the concrete IO implementation specified in xio_create, by calling the concrete_io_send function while passing down the buffer and size arguments to it.] */
-        /* Codes_SRS_XIO_01_009: [On success, xio_send shall return 0.] */
-        /* Codes_SRS_XIO_01_015: [If the underlying concrete_io_send fails, xio_send shall return a non-zero value.] */
-        /* Codes_SRS_XIO_01_027: [xio_send shall pass to the concrete_io_send function the on_send_complete and callback_context arguments.] */
-        result = xio_instance->io_interface_description->concrete_io_send(xio_instance->concrete_xio_handle, buffer, size, on_send_complete, callback_context);
+        if(ZOS_FAILED(zos_result, zn_tcp_write(connection_info.stream_handle, buffer, size, ZOS_FALSE)))
+        {
+            on_send_complete(callback_context, IO_SEND_ERROR);
+        }
+        else
+        {
+            on_send_complete(callback_context, IO_SEND_OK);
+        }
     }
 
     return result;
@@ -95,6 +111,12 @@ int xio_send(XIO_HANDLE xio, const void* buffer, size_t size, ON_SEND_COMPLETE o
 /*************************************************************************************************/
 void xio_dowork(XIO_HANDLE xio)
 {
+    if(connection_info.stream_handle != ZOS_INVALID_HANDLE)
+    {
+        uint32_t unused;
+        // if data is available then the RX event will be invoked
+        zn_tcp_poll(connection_info.stream_handle, &unused);
+    }
 }
 
 /*************************************************************************************************/
@@ -103,4 +125,33 @@ int xio_setoption(XIO_HANDLE xio, const char* optionName, const void* value)
     return 0;
 }
 
+/** --------------------------------------------------------------------------------------------
+ *  Internal functions
+ * -------------------------------------------------------------------------------------------- **/
 
+/*************************************************************************************************/
+static void tls_stream_disconnected_handler(uint32_t handle)
+{
+    if(connection_info.stream_handle != ZOS_INVALID_HANDLE)
+    {
+        connection_info.error_callback(connection_info.error_callback_context);
+    }
+}
+
+/*************************************************************************************************/
+static void tls_stream_received_handler(uint32_t handle)
+{
+    zos_result_t result;
+    zos_buffer_t buffer =
+    {
+            .size = UINT16_MAX
+    };
+
+    if(ZOS_FAILED(result, zn_tcp_read_with_buffer(connection_info.stream_handle, &buffer)))
+    {
+    }
+    else
+    {
+        connection_info.rx_callback(connection_info.rx_callback_context, buffer.data, buffer.size);
+    }
+}

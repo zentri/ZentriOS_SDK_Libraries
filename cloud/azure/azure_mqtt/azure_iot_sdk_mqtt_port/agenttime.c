@@ -16,6 +16,8 @@ time_t get_time(time_t* p)
 
     zn_time_get_rtc_time_raw(ptr);
 
+    *ptr = *ptr / 1000;
+
     return *ptr;
 }
 
